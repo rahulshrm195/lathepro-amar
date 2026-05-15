@@ -1,0 +1,2419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LathePro — Amar Furniture</title>
+<meta name="theme-color" content="#1a1209">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LathePro">
+<link rel="manifest" href="manifest.json" />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f0d08;
+    --surface: #1a1710;
+    --surface2: #242018;
+    --surface3: #2e2a1e;
+    --border: #3a3420;
+    --border2: #4a4228;
+    --gold: #c9a84c;
+    --gold2: #e2c068;
+    --gold-dim: #7a6330;
+    --text: #f0e8d0;
+    --text2: #b0a880;
+    --text3: #706848;
+    --red: #c0392b;
+    --green: #27ae60;
+    --radius: 10px;
+    --radius-lg: 16px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── SCREEN SYSTEM ── */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ══════════════════════════════════
+     PIN SCREEN
+  ══════════════════════════════════ */
+  #pin-screen {
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at 50% 30%, #2a2010 0%, var(--bg) 70%);
+  }
+
+  .pin-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 48px 40px;
+    width: 340px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+
+  .pin-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    color: var(--gold);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .pin-sub {
+    color: var(--text3);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 36px;
+  }
+
+  .pin-dots {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+
+  .pin-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--border2);
+    background: transparent;
+    transition: all 0.2s;
+  }
+
+  .pin-dot.filled {
+    background: var(--gold);
+    border-color: var(--gold);
+    box-shadow: 0 0 10px rgba(201,168,76,0.4);
+  }
+
+  .pin-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .pin-key {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .pin-key:hover { background: var(--surface3); border-color: var(--gold-dim); }
+  .pin-key:active { transform: scale(0.95); }
+  .pin-key.del { font-size: 16px; color: var(--text2); }
+  .pin-key.wide { grid-column: span 3; font-size: 14px; padding: 14px; }
+  .pin-error { color: var(--red); font-size: 13px; margin-top: 16px; min-height: 20px; }
+
+  /* ══════════════════════════════════
+     HEADER
+  ══════════════════════════════════ */
+  .app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--gold);
+  }
+
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+
+  .btn-gold {
+    background: var(--gold);
+    color: #1a1209;
+  }
+  .btn-gold:hover { background: var(--gold2); }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+  }
+  .btn-outline:hover { border-color: var(--gold-dim); color: var(--text); }
+
+  .btn-danger {
+    background: transparent;
+    border: 1px solid #5a2020;
+    color: #e57373;
+  }
+  .btn-danger:hover { background: #2a1010; }
+
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-icon { padding: 8px; width: 36px; height: 36px; justify-content: center; }
+
+  /* ══════════════════════════════════
+     DASHBOARD / LIST
+  ══════════════════════════════════ */
+  #list-screen { background: var(--bg); }
+
+  .list-body {
+    flex: 1;
+    padding: 24px 20px;
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .list-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .list-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    color: var(--gold);
+  }
+
+  .quote-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .quote-card:hover { border-color: var(--gold-dim); background: var(--surface2); }
+
+  .quote-card-left { flex: 1; }
+  .quote-card-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--gold);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .quote-card-name { font-size: 16px; font-weight: 500; color: var(--text); }
+  .quote-card-date { font-size: 12px; color: var(--text3); margin-top: 3px; }
+
+  .quote-card-right { text-align: right; }
+  .quote-card-amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    color: var(--gold2);
+    font-weight: 500;
+  }
+
+  .quote-card-items { font-size: 12px; color: var(--text3); margin-top: 3px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text3);
+  }
+
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-title { font-size: 18px; color: var(--text2); margin-bottom: 8px; }
+
+  /* ══════════════════════════════════
+     QUOTE BUILDER
+  ══════════════════════════════════ */
+  #builder-screen { background: var(--bg); }
+
+  .builder-body {
+    flex: 1;
+    padding: 20px;
+    max-width: 860px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* Customer Info */
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    color: var(--gold);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+  .form-row.full { grid-template-columns: 1fr; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+  label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  input, select, textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 10px 12px;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--gold-dim);
+  }
+
+  input[readonly] { color: var(--text2); cursor: default; }
+
+  select option { background: var(--surface2); }
+
+  textarea { resize: vertical; min-height: 70px; }
+
+  /* ── ITEM CARD ── */
+  .item-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+
+  .item-card-header {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface3);
+  }
+
+  .item-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+
+  .item-card-body { padding: 16px; }
+
+  .calc-display {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .calc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+
+  .calc-label { color: var(--text3); }
+
+  .calc-val {
+    font-family: 'DM Mono', monospace;
+    color: var(--gold2);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .calc-divider {
+    grid-column: span 2;
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2px 0;
+  }
+
+  .calc-total {
+    grid-column: span 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .calc-total .calc-label { font-size: 13px; font-weight: 600; color: var(--text2); }
+  .calc-total .calc-val { font-size: 16px; color: var(--gold); }
+
+  /* ── PHOTOS ── */
+  .photos-section { margin-top: 14px; }
+
+  .photos-label {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .photos-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .photo-thumb {
+    width: 70px; height: 70px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+
+  .photo-wrap {
+    position: relative;
+    width: 70px; height: 70px;
+  }
+
+  .photo-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .photo-remove {
+    position: absolute;
+    top: -6px; right: -6px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .photo-add-btn {
+    width: 70px; height: 70px;
+    border-radius: 8px;
+    border: 2px dashed var(--border2);
+    background: var(--surface);
+    color: var(--text3);
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .photo-add-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+
+  /* ── TOTALS ── */
+  .totals-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .totals-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .totals-row:last-child { border-bottom: none; }
+
+  .totals-row .lbl { color: var(--text2); }
+
+  .totals-row .val {
+    font-family: 'DM Mono', monospace;
+    color: var(--text);
+  }
+
+  .totals-grand {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0 0;
+    margin-top: 8px;
+    border-top: 2px solid var(--gold-dim);
+  }
+
+  .totals-grand .lbl {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--gold);
+  }
+
+  .totals-grand .val {
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    color: var(--gold2);
+    font-weight: 500;
+  }
+
+  .discount-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .disc-type-btn {
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--text2);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .disc-type-btn.active {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: #1a1209;
+    font-weight: 600;
+  }
+
+  /* ── BOTTOM ACTIONS ── */
+  .builder-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+  }
+
+  /* ══════════════════════════════════
+     QUOTE VIEW (read-only)
+  ══════════════════════════════════ */
+  #view-screen { background: var(--bg); }
+
+  .view-body {
+    flex: 1;
+    padding: 20px;
+    max-width: 860px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .view-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .view-quote-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+
+  .view-customer {
+    font-size: 22px;
+    font-family: 'Playfair Display', serif;
+    color: var(--text);
+    margin-top: 4px;
+  }
+
+  .view-date { font-size: 13px; color: var(--text3); margin-top: 4px; }
+
+  .view-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .view-item-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+
+  .view-item-header {
+    padding: 12px 16px;
+    background: var(--surface3);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .view-item-name { font-weight: 500; font-size: 15px; }
+  .view-item-num { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--gold); }
+
+  .view-item-body { padding: 16px; }
+
+  .view-item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .view-detail { }
+  .view-detail-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; }
+  .view-detail-val { font-size: 14px; color: var(--text); margin-top: 3px; font-weight: 500; }
+
+  .view-item-photos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .view-item-photos img {
+    width: 60px; height: 60px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+  }
+
+  .view-item-costs {
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+  }
+
+  .view-cost-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .view-cost-row:last-child { border-bottom: none; }
+  .view-cost-row .lbl { color: var(--text2); }
+  .view-cost-row .val { font-family: 'DM Mono', monospace; color: var(--gold2); }
+
+  /* ── SUMMARY TOTALS ── */
+  .view-summary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .view-terms {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-size: 12px;
+    color: var(--text3);
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  /* ══════════════════════════════════
+     TOAST
+  ══════════════════════════════════ */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 12px 22px;
+    border-radius: 30px;
+    font-size: 13px;
+    z-index: 9999;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ══════════════════════════════════
+     LOADING
+  ══════════════════════════════════ */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,8,4,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9998;
+    display: none;
+  }
+
+  .loading-overlay.show { display: flex; }
+
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ══════════════════════════════════
+     RESPONSIVE
+  ══════════════════════════════════ */
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+    .form-row.three { grid-template-columns: 1fr 1fr; }
+    .builder-actions { flex-direction: column; }
+    .pin-card { width: 100%; margin: 20px; }
+    .view-meta { flex-direction: column; }
+  }
+
+  /* ── INSTALL BANNER ── */
+  .install-banner {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface2);
+    border-top: 1px solid var(--border2);
+    padding: 12px 20px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    z-index: 9990;
+    animation: slideUp 0.3s ease;
+  }
+  .install-banner.show { display: flex; }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .install-banner-text { font-size: 13px; color: var(--text2); }
+  .install-banner-text strong { color: var(--text); }
+
+  /* ── AUTOSAVE ── */
+  .autosave-indicator {
+    font-size: 11px;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.3s;
+  }
+  .autosave-indicator.saved { color: var(--green); }
+  .autosave-indicator.saving { color: var(--gold-dim); }
+  .autosave-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ── VERSION BADGE ── */
+  .version-tag {
+    font-size: 10px;
+    color: var(--text3);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── OFFLINE BANNER ── */
+  .offline-banner {
+    display: none;
+    background: #5a3010;
+    color: #f0c080;
+    text-align: center;
+    padding: 6px;
+    font-size: 12px;
+    border-bottom: 1px solid #8a5020;
+  }
+  .offline-banner.show { display: block; }
+
+  /* ── DRAFT RECOVERY BANNER ── */
+  .draft-banner {
+    display: none;
+    background: var(--surface2);
+    border: 1px solid var(--gold-dim);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .draft-banner.show { display: flex; }
+  .draft-banner-text { font-size: 13px; color: var(--text2); }
+  .draft-banner-text strong { color: var(--gold); }
+
+
+
+  @media print {
+    .no-print { display: none !important; }
+    body { background: white; color: black; }
+  }
+
+  /* ── BADGE ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .badge-gold { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid var(--gold-dim); }
+
+  /* ── SECTION DIVIDER ── */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0 14px;
+  }
+
+  .section-divider span {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    color: var(--gold);
+    white-space: nowrap;
+  }
+
+  .section-divider::before, .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+</style>
+</head>
+<body>
+
+<!-- OFFLINE BANNER -->
+<div class="offline-banner" id="offline-banner">📡 You are offline — viewing cached data</div>
+
+<!-- ══════════════════ PIN SCREEN ══════════════════ -->
+<div id="pin-screen" class="screen active">
+  <div class="pin-card">
+    <div class="pin-logo">LathePro</div>
+    <div class="pin-sub">Amar Furniture</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key" onclick="pinSubmit()">✓</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ LIST SCREEN ══════════════════ -->
+<div id="list-screen" class="screen">
+  <div class="app-header no-print">
+    <div>
+      <div class="header-logo">LathePro</div>
+      <div class="version-tag">v1.0.0</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
+      <button class="btn btn-outline btn-icon" onclick="lockApp()" title="Lock">🔒</button>
+    </div>
+  </div>
+  <div class="list-body">
+    <div class="list-top">
+      <div class="list-title">Quotes</div>
+      <div id="quotes-count" style="color:var(--text3);font-size:13px;"></div>
+    </div>
+    <div id="quotes-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ BUILDER SCREEN ══════════════════ -->
+<div id="builder-screen" class="screen">
+  <div class="app-header no-print">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
+      <div>
+        <div class="header-logo" style="font-size:18px;">LathePro</div>
+        <div class="version-tag">v1.0.0</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="autosave-indicator" id="autosave-indicator">
+        <div class="autosave-dot"></div>
+        <span id="autosave-text">draft</span>
+      </div>
+      <span id="builder-quote-num" class="badge badge-gold"></span>
+      <button class="btn btn-gold" onclick="saveQuote()">💾 Save</button>
+    </div>
+  </div>
+
+  <div class="builder-body">
+    <!-- Draft Recovery Banner -->
+    <div class="draft-banner" id="draft-banner">
+      <div class="draft-banner-text">📝 <strong>Unsaved draft found.</strong> Restore it?</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-gold btn-sm" onclick="restoreDraft()">Restore</button>
+        <button class="btn btn-outline btn-sm" onclick="discardDraft()">Discard</button>
+      </div>
+    </div>
+    <!-- Customer -->
+    <div class="section-card">
+      <div class="section-title">📋 Customer Details</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Customer Name *</label>
+          <input type="text" id="cust-name" placeholder="e.g. Rajesh Sharma">
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" id="cust-phone" placeholder="+91 00000 00000">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="quote-date">
+        </div>
+        <div class="form-group">
+          <label>Delivery Date</label>
+          <input type="date" id="delivery-date">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label>Address / Notes</label>
+          <textarea id="cust-address" placeholder="Customer address or project notes..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Items -->
+    <div class="section-divider"><span>🪵 Lathe Items</span></div>
+    <div id="items-container"></div>
+    <button class="btn btn-outline" style="width:100%;margin-bottom:16px;" onclick="addItem()">+ Add Item</button>
+
+    <!-- Totals -->
+    <div class="totals-card">
+      <div class="section-title" style="margin-bottom:12px;">💰 Summary</div>
+
+      <div style="margin-bottom:12px;">
+        <div style="font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Discount</div>
+        <div class="discount-toggle">
+          <button class="disc-type-btn active" id="disc-flat-btn" onclick="setDiscType('flat')">₹ Flat</button>
+          <button class="disc-type-btn" id="disc-pct-btn" onclick="setDiscType('pct')">% Percent</button>
+        </div>
+        <input type="number" id="discount-val" placeholder="0" min="0" oninput="recalcTotals()" style="width:180px;">
+      </div>
+
+      <div id="totals-breakdown"></div>
+    </div>
+
+    <!-- Terms -->
+    <div class="section-card">
+      <div class="section-title">📄 Terms & Conditions</div>
+      <textarea id="terms-text" style="min-height:90px;">1. GST will be charged extra as applicable.
+2. 50% advance required before work commencement.
+3. Delivery subject to material availability.
+4. Prices valid for 15 days from quote date.</textarea>
+    </div>
+
+    <div class="builder-actions">
+      <button class="btn btn-gold" onclick="saveQuote()" style="flex:1;">💾 Save Quote</button>
+      <button class="btn btn-outline" onclick="generateQuotePDF()" style="flex:1;">📄 PDF Quote</button>
+      <button class="btn btn-outline" onclick="generateJobSheet()" style="flex:1;">🔧 Job Sheet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ VIEW SCREEN ══════════════════ -->
+<div id="view-screen" class="screen">
+  <div class="app-header no-print">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
+      <div class="header-logo" style="font-size:18px;">LathePro</div>
+    </div>
+    <div class="view-actions">
+      <button class="btn btn-outline btn-sm" onclick="editCurrentQuote()">✏️ Edit</button>
+      <button class="btn btn-outline btn-sm" onclick="generateQuotePDF()">📄 PDF</button>
+      <button class="btn btn-outline btn-sm" onclick="generateJobSheet()">🔧 Job Sheet</button>
+      <button class="btn btn-outline btn-sm" onclick="shareWhatsApp()">📱 WhatsApp</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteCurrentQuote()">🗑 Delete</button>
+    </div>
+  </div>
+  <div class="view-body" id="view-body"></div>
+</div>
+
+<!-- INSTALL BANNER -->
+<div class="install-banner" id="install-banner">
+  <div class="install-banner-text">📲 Install <strong>LathePro</strong> for offline access</div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-gold btn-sm" onclick="installApp()">Install</button>
+    <button class="btn btn-outline btn-sm" onclick="dismissInstall()">Later</button>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════ SCRIPTS ══════════════════ -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import {
+  getFirestore, collection, addDoc, getDocs, doc,
+  updateDoc, deleteDoc, query, orderBy, getDoc
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+// ── CONFIG ──
+const firebaseConfig = {
+  apiKey: "AIzaSyARVv1P0ssuKzfpS1M59AB-rG3riIWh-2c",
+  authDomain: "amar-furniture-e4782.firebaseapp.com",
+  projectId: "amar-furniture-e4782",
+  storageBucket: "amar-furniture-e4782.firebasestorage.app",
+  messagingSenderId: "1084205045390",
+  appId: "1:1084205045390:web:e3c782b318e872629c5bdf"
+};
+
+const PIN = "1609"; // same as QuotePro
+const WOOD_TYPES = ["Teak", "Khair", "Sagwan", "Mango", "Sheesham", "Other"];
+const DEFAULT_WOOD_RATE = 5500;
+const DEFAULT_LATHE_RATE = 100;
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ── STATE ──
+let currentQuote = null; // quote being viewed
+let editingQuoteId = null;
+let items = []; // builder items
+let discountType = 'flat'; // 'flat' | 'pct'
+let quotesCache = [];
+
+// Make functions global
+window.pinKey = pinKey;
+window.pinDel = pinDel;
+window.pinSubmit = pinSubmit;
+window.lockApp = lockApp;
+window.newQuote = newQuote;
+window.goList = goList;
+window.addItem = addItem;
+window.removeItem = removeItem;
+window.calcItem = calcItem;
+window.recalcTotals = recalcTotals;
+window.setDiscType = setDiscType;
+window.saveQuote = saveQuote;
+window.openQuote = openQuote;
+window.editCurrentQuote = editCurrentQuote;
+window.deleteCurrentQuote = deleteCurrentQuote;
+window.generateQuotePDF = generateQuotePDF;
+window.generateJobSheet = generateJobSheet;
+window.shareWhatsApp = shareWhatsApp;
+window.addPhotos = addPhotos;
+window.removePhoto = removePhoto;
+
+// ══════════════════════════════════
+//   PIN
+// ══════════════════════════════════
+let pinEntry = '';
+
+function pinKey(d) {
+  if (pinEntry.length >= 4) return;
+  pinEntry += d;
+  updateDots();
+  if (pinEntry.length === 4) setTimeout(pinSubmit, 150);
+}
+
+function pinDel() {
+  pinEntry = pinEntry.slice(0, -1);
+  updateDots();
+  document.getElementById('pin-error').textContent = '';
+}
+
+function pinSubmit() {
+  if (pinEntry === PIN) {
+    showScreen('list');
+    loadQuotes();
+  } else {
+    document.getElementById('pin-error').textContent = 'Incorrect PIN. Try again.';
+    pinEntry = '';
+    updateDots();
+  }
+}
+
+function updateDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById('d' + i).classList.toggle('filled', i < pinEntry.length);
+  }
+}
+
+function lockApp() {
+  pinEntry = '';
+  updateDots();
+  document.getElementById('pin-error').textContent = '';
+  showScreen('pin');
+}
+
+// ══════════════════════════════════
+//   SCREEN NAV
+// ══════════════════════════════════
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(name + '-screen').classList.add('active');
+}
+
+function goList() {
+  // If leaving builder with unsaved work, save draft silently
+  if (document.getElementById('builder-screen').classList.contains('active')) {
+    saveDraftToLocal();
+  }
+  showScreen('list');
+  loadQuotes();
+}
+
+// ══════════════════════════════════
+//   QUOTE LIST
+// ══════════════════════════════════
+async function loadQuotes() {
+  showLoading(true);
+  try {
+    const q = query(collection(db, 'lathepro_quotes'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    quotesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderList();
+  } catch (e) {
+    toast('Error loading quotes');
+  }
+  showLoading(false);
+}
+
+function renderList() {
+  const el = document.getElementById('quotes-list');
+  const cnt = document.getElementById('quotes-count');
+  cnt.textContent = quotesCache.length + ' quote' + (quotesCache.length !== 1 ? 's' : '');
+
+  if (quotesCache.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🪵</div>
+      <div class="empty-title">No quotes yet</div>
+      <div>Create your first lathe work quote</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = quotesCache.map(q => `
+    <div class="quote-card" onclick="openQuote('${q.id}')">
+      <div class="quote-card-left">
+        <div class="quote-card-num">${q.quoteNo}</div>
+        <div class="quote-card-name">${q.customerName}</div>
+        <div class="quote-card-date">${formatDate(q.date)}</div>
+      </div>
+      <div class="quote-card-right">
+        <div class="quote-card-amount">₹${fmt(q.grandTotal || 0)}</div>
+        <div class="quote-card-items">${(q.items || []).length} item${(q.items || []).length !== 1 ? 's' : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════
+//   NEW / EDIT QUOTE BUILDER
+// ══════════════════════════════════
+function newQuote() {
+  editingQuoteId = null;
+  items = [];
+  discountType = 'flat';
+
+  // Reset form
+  document.getElementById('cust-name').value = '';
+  document.getElementById('cust-phone').value = '';
+  document.getElementById('cust-address').value = '';
+  document.getElementById('quote-date').value = todayStr();
+  document.getElementById('delivery-date').value = '';
+  document.getElementById('discount-val').value = '';
+  document.getElementById('terms-text').value = `1. GST will be charged extra as applicable.\n2. 50% advance required before work commencement.\n3. Delivery subject to material availability.\n4. Prices valid for 15 days from quote date.`;
+
+  setDiscType('flat');
+  document.getElementById('items-container').innerHTML = '';
+
+  getNextQuoteNo().then(no => {
+    document.getElementById('builder-quote-num').textContent = no;
+    window._pendingQuoteNo = no;
+  });
+
+  // Check for unsaved draft
+  const draft = checkForDraft();
+  if (draft && !draft.editingId) {
+    document.getElementById('draft-banner').classList.add('show');
+    addItem(); // fallback blank item
+  } else {
+    document.getElementById('draft-banner').classList.remove('show');
+    addItem();
+  }
+
+  setAutosaveStatus('idle');
+  showScreen('builder');
+}
+
+async function getNextQuoteNo() {
+  try {
+    const q = query(collection(db, 'lathepro_quotes'), orderBy('quoteNo', 'desc'));
+    const snap = await getDocs(q);
+    if (snap.empty) return 'LP-001';
+    const last = snap.docs[0].data().quoteNo || 'LP-000';
+    const num = parseInt(last.replace('LP-', '')) + 1;
+    return 'LP-' + String(num).padStart(3, '0');
+  } catch {
+    return 'LP-' + Date.now().toString().slice(-4);
+  }
+}
+
+// ── ITEMS ──
+let itemIdCounter = 0;
+
+function addItem() {
+  const id = ++itemIdCounter;
+  const idx = items.length;
+  items.push({
+    id,
+    name: '',
+    woodType: 'Teak',
+    length: '',
+    width: '',
+    thickness: '',
+    qty: 1,
+    woodRate: DEFAULT_WOOD_RATE,
+    latheRate: DEFAULT_LATHE_RATE,
+    latheDia: '',
+    notes: '',
+    photos: [], // base64 strings
+  });
+  renderItems();
+}
+
+function removeItem(id) {
+  items = items.filter(i => i.id !== id);
+  renderItems();
+  recalcTotals();
+}
+
+function renderItems() {
+  const container = document.getElementById('items-container');
+  container.innerHTML = items.map((item, idx) => renderItemCard(item, idx)).join('');
+}
+
+function renderItemCard(item, idx) {
+  const thumbs = item.photos.map((p, pi) => `
+    <div class="photo-wrap">
+      <img src="${p}" alt="photo">
+      <button class="photo-remove" onclick="removePhoto(${item.id}, ${pi})">×</button>
+    </div>
+  `).join('');
+
+  return `
+  <div class="item-card" id="item-card-${item.id}">
+    <div class="item-card-header">
+      <div class="item-num">ITEM ${String(idx + 1).padStart(2,'0')}</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select onchange="updateItem(${item.id},'woodType',this.value)" style="width:110px;padding:5px 8px;font-size:12px;">
+          ${WOOD_TYPES.map(w => `<option ${item.woodType===w?'selected':''}>${w}</option>`).join('')}
+        </select>
+        ${items.length > 1 ? `<button class="btn btn-danger btn-sm btn-icon" onclick="removeItem(${item.id})">×</button>` : ''}
+      </div>
+    </div>
+    <div class="item-card-body">
+      <div class="form-row">
+        <div class="form-group" style="grid-column:span 2;">
+          <label>Item Description *</label>
+          <input type="text" placeholder="e.g. Sofa Legs, Table Pillar..." value="${item.name}"
+            oninput="updateItem(${item.id},'name',this.value)">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label>Length (ft)</label>
+          <input type="number" placeholder="3" min="0" step="0.1" value="${item.length}"
+            oninput="updateItem(${item.id},'length',this.value);calcItem(${item.id})">
+        </div>
+        <div class="form-group">
+          <label>Width (inches)</label>
+          <input type="number" placeholder="6" min="0" step="0.5" value="${item.width}"
+            oninput="updateItem(${item.id},'width',this.value);calcItem(${item.id})">
+        </div>
+        <div class="form-group">
+          <label>Thickness (inches)</label>
+          <input type="number" placeholder="6" min="0" step="0.5" value="${item.thickness}"
+            oninput="updateItem(${item.id},'thickness',this.value);calcItem(${item.id})">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="form-group">
+          <label>Qty (pcs)</label>
+          <input type="number" placeholder="1" min="1" value="${item.qty}"
+            oninput="updateItem(${item.id},'qty',this.value);calcItem(${item.id})">
+        </div>
+        <div class="form-group">
+          <label>Wood Rate (₹/CFT)</label>
+          <input type="number" placeholder="${DEFAULT_WOOD_RATE}" value="${item.woodRate}"
+            oninput="updateItem(${item.id},'woodRate',this.value);calcItem(${item.id})">
+        </div>
+        <div class="form-group">
+          <label>Lathe Rate (₹/ft×in)</label>
+          <input type="number" placeholder="${DEFAULT_LATHE_RATE}" value="${item.latheRate}"
+            oninput="updateItem(${item.id},'latheRate',this.value);calcItem(${item.id})">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label>Item Notes</label>
+          <input type="text" placeholder="Special instructions for this item..."
+            value="${item.notes}" oninput="updateItem(${item.id},'notes',this.value)">
+        </div>
+      </div>
+
+      <div class="calc-display" id="calc-${item.id}">
+        <div class="calc-row"><span class="calc-label">CFT</span><span class="calc-val" id="cft-${item.id}">—</span></div>
+        <div class="calc-row"><span class="calc-label">Wood/pc</span><span class="calc-val" id="wood-pc-${item.id}">—</span></div>
+        <hr class="calc-divider">
+        <div class="calc-row"><span class="calc-label">Lathe/pc</span><span class="calc-val" id="lathe-pc-${item.id}">—</span></div>
+        <div class="calc-row"><span class="calc-label">Qty</span><span class="calc-val">${item.qty || 1}</span></div>
+        <hr class="calc-divider">
+        <div class="calc-total">
+          <span class="calc-label">Total Wood (×qty)</span>
+          <span class="calc-val" id="wood-total-${item.id}">—</span>
+        </div>
+        <div class="calc-total">
+          <span class="calc-label">Total Lathe (×qty)</span>
+          <span class="calc-val" id="lathe-total-${item.id}">—</span>
+        </div>
+        <div class="calc-total" style="margin-top:4px;padding-top:8px;border-top:1px solid var(--border);">
+          <span class="calc-label" style="color:var(--gold);font-size:14px;">Item Total</span>
+          <span class="calc-val" style="font-size:18px;color:var(--gold);" id="item-total-${item.id}">—</span>
+        </div>
+      </div>
+
+      <div class="photos-section">
+        <div class="photos-label">Reference Photos</div>
+        <div class="photos-grid" id="photos-grid-${item.id}">
+          ${thumbs}
+          <label class="photo-add-btn" for="photo-input-${item.id}" title="Add photo">+</label>
+          <input type="file" id="photo-input-${item.id}" accept="image/*" multiple style="display:none"
+            onchange="addPhotos(${item.id}, this)">
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function updateItem(id, field, value) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  item[field] = field === 'qty' || field === 'woodRate' || field === 'latheRate' ||
+                field === 'length' || field === 'width' || field === 'thickness' || field === 'latheDia'
+    ? parseFloat(value) || 0
+    : value;
+}
+
+function calcItem(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+
+  const L = parseFloat(item.length) || 0;
+  const W = parseFloat(item.width) || 0;
+  const T = parseFloat(item.thickness) || 0;
+  const qty = parseInt(item.qty) || 1;
+  const woodRate = parseFloat(item.woodRate) || DEFAULT_WOOD_RATE;
+  const latheRate = parseFloat(item.latheRate) || DEFAULT_LATHE_RATE;
+
+  // CFT = L × W × T / 144
+  const cft = L * W * T / 144;
+  const woodPerPc = cft * woodRate;
+
+  // Lathe = L × W × rate
+  const lathePerPc = L * W * latheRate;
+
+  const woodTotal = woodPerPc * qty;
+  const latheTotal = lathePerPc * qty;
+  const itemTotal = woodTotal + latheTotal;
+
+  // Store
+  item._cft = cft;
+  item._woodPerPc = woodPerPc;
+  item._lathePerPc = lathePerPc;
+  item._woodTotal = woodTotal;
+  item._latheTotal = latheTotal;
+  item._itemTotal = itemTotal;
+
+  // Update display
+  const s = id => document.getElementById(id);
+  if (s(`cft-${id}`)) s(`cft-${id}`).textContent = cft.toFixed(4);
+  if (s(`wood-pc-${id}`)) s(`wood-pc-${id}`).textContent = '₹' + fmt(woodPerPc);
+  if (s(`lathe-pc-${id}`)) s(`lathe-pc-${id}`).textContent = '₹' + fmt(lathePerPc);
+  if (s(`wood-total-${id}`)) s(`wood-total-${id}`).textContent = '₹' + fmt(woodTotal);
+  if (s(`lathe-total-${id}`)) s(`lathe-total-${id}`).textContent = '₹' + fmt(latheTotal);
+  if (s(`item-total-${id}`)) s(`item-total-${id}`).textContent = '₹' + fmt(itemTotal);
+
+  recalcTotals();
+}
+
+function recalcTotals() {
+  const subtotalWood = items.reduce((a, i) => a + (i._woodTotal || 0), 0);
+  const subtotalLathe = items.reduce((a, i) => a + (i._latheTotal || 0), 0);
+  const subtotal = subtotalWood + subtotalLathe;
+
+  const discVal = parseFloat(document.getElementById('discount-val')?.value) || 0;
+  let discAmount = 0;
+  if (discountType === 'flat') {
+    discAmount = discVal;
+  } else {
+    discAmount = subtotal * discVal / 100;
+  }
+
+  const grandTotal = Math.max(0, subtotal - discAmount);
+
+  document.getElementById('totals-breakdown').innerHTML = `
+    <div class="totals-row"><span class="lbl">Wood Subtotal</span><span class="val">₹${fmt(subtotalWood)}</span></div>
+    <div class="totals-row"><span class="lbl">Lathe Subtotal</span><span class="val">₹${fmt(subtotalLathe)}</span></div>
+    <div class="totals-row"><span class="lbl">Subtotal</span><span class="val">₹${fmt(subtotal)}</span></div>
+    ${discAmount > 0 ? `<div class="totals-row"><span class="lbl">Discount ${discountType === 'pct' ? `(${discVal}%)` : ''}</span><span class="val" style="color:#e57373;">−₹${fmt(discAmount)}</span></div>` : ''}
+    <div class="totals-grand">
+      <span class="lbl">Grand Total</span>
+      <span class="val">₹${fmt(grandTotal)}</span>
+    </div>
+  `;
+
+  return { subtotalWood, subtotalLathe, subtotal, discAmount, grandTotal };
+}
+
+function setDiscType(type) {
+  discountType = type;
+  document.getElementById('disc-flat-btn').classList.toggle('active', type === 'flat');
+  document.getElementById('disc-pct-btn').classList.toggle('active', type === 'pct');
+  recalcTotals();
+}
+
+// ── PHOTOS ──
+function addPhotos(itemId, input) {
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+  const files = Array.from(input.files);
+  let loaded = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      item.photos.push(e.target.result);
+      loaded++;
+      if (loaded === files.length) {
+        renderItems();
+        // Restore calc values by re-running calcItem for all
+        items.forEach(it => { if (it._cft !== undefined) calcItem(it.id); });
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function removePhoto(itemId, photoIdx) {
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+  item.photos.splice(photoIdx, 1);
+  renderItems();
+  items.forEach(it => { if (it._cft !== undefined) calcItem(it.id); });
+}
+
+// ══════════════════════════════════
+//   SAVE QUOTE
+// ══════════════════════════════════
+async function saveQuote() {
+  const custName = document.getElementById('cust-name').value.trim();
+  if (!custName) { toast('Please enter customer name'); return; }
+  if (items.length === 0) { toast('Please add at least one item'); return; }
+
+  // Recalc all items
+  items.forEach(it => calcItem(it.id));
+  const totals = recalcTotals();
+
+  const discVal = parseFloat(document.getElementById('discount-val').value) || 0;
+
+  const quoteData = {
+    quoteNo: window._pendingQuoteNo || editingQuoteId,
+    customerName: custName,
+    phone: document.getElementById('cust-phone').value.trim(),
+    address: document.getElementById('cust-address').value.trim(),
+    date: document.getElementById('quote-date').value,
+    deliveryDate: document.getElementById('delivery-date').value,
+    terms: document.getElementById('terms-text').value,
+    discountType,
+    discountVal: discVal,
+    discountAmount: totals.discAmount,
+    subtotalWood: totals.subtotalWood,
+    subtotalLathe: totals.subtotalLathe,
+    subtotal: totals.subtotal,
+    grandTotal: totals.grandTotal,
+    items: items.map(it => ({
+      id: it.id,
+      name: it.name,
+      woodType: it.woodType,
+      length: it.length,
+      width: it.width,
+      thickness: it.thickness,
+      qty: it.qty,
+      woodRate: it.woodRate,
+      latheRate: it.latheRate,
+      notes: it.notes,
+      photos: it.photos,
+      _cft: it._cft || 0,
+      _woodPerPc: it._woodPerPc || 0,
+      _lathePerPc: it._lathePerPc || 0,
+      _woodTotal: it._woodTotal || 0,
+      _latheTotal: it._latheTotal || 0,
+      _itemTotal: it._itemTotal || 0,
+    })),
+    createdAt: editingQuoteId ? undefined : new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  showLoading(true);
+  try {
+    if (editingQuoteId) {
+      const ref = doc(db, 'lathepro_quotes', editingQuoteId);
+      await updateDoc(ref, quoteData);
+      currentQuote = { id: editingQuoteId, ...quoteData };
+      clearDraft();
+      setAutosaveStatus('idle');
+      toast('Quote updated ✓');
+    } else {
+      quoteData.quoteNo = window._pendingQuoteNo;
+      const ref = await addDoc(collection(db, 'lathepro_quotes'), quoteData);
+      editingQuoteId = ref.id;
+      currentQuote = { id: ref.id, ...quoteData };
+      clearDraft();
+      setAutosaveStatus('idle');
+      toast('Quote saved ✓');
+    }
+  } catch (e) {
+    toast('Error saving: ' + e.message);
+  }
+  showLoading(false);
+}
+
+// ══════════════════════════════════
+//   VIEW QUOTE
+// ══════════════════════════════════
+async function openQuote(id) {
+  showLoading(true);
+  try {
+    const snap = await getDoc(doc(db, 'lathepro_quotes', id));
+    if (!snap.exists()) { toast('Quote not found'); return; }
+    currentQuote = { id: snap.id, ...snap.data() };
+    renderView(currentQuote);
+    showScreen('view');
+  } catch (e) {
+    toast('Error loading quote');
+  }
+  showLoading(false);
+}
+
+function renderView(q) {
+  const el = document.getElementById('view-body');
+  const itemsHtml = (q.items || []).map((item, idx) => `
+    <div class="view-item-card">
+      <div class="view-item-header">
+        <div>
+          <div class="view-item-num">ITEM ${String(idx+1).padStart(2,'0')} · ${item.woodType}</div>
+          <div class="view-item-name">${item.name || 'Unnamed Item'}</div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:16px;color:var(--gold);">₹${fmt(item._itemTotal || 0)}</div>
+      </div>
+      <div class="view-item-body">
+        ${item.photos && item.photos.length > 0 ? `
+          <div class="view-item-photos">
+            ${item.photos.map(p => `<img src="${p}" alt="ref">`).join('')}
+          </div>
+        ` : ''}
+        <div class="view-item-grid">
+          <div class="view-detail">
+            <div class="view-detail-label">Dimensions</div>
+            <div class="view-detail-val">${item.length}ft × ${item.width}" × ${item.thickness}"</div>
+          </div>
+          <div class="view-detail">
+            <div class="view-detail-label">Qty</div>
+            <div class="view-detail-val">${item.qty} pcs</div>
+          </div>
+          <div class="view-detail">
+            <div class="view-detail-label">CFT</div>
+            <div class="view-detail-val">${(item._cft || 0).toFixed(4)}</div>
+          </div>
+          <div class="view-detail">
+            <div class="view-detail-label">Wood Rate</div>
+            <div class="view-detail-val">₹${fmt(item.woodRate)}/CFT</div>
+          </div>
+          <div class="view-detail">
+            <div class="view-detail-label">Lathe Rate</div>
+            <div class="view-detail-val">₹${fmt(item.latheRate)}/ft×in</div>
+          </div>
+        </div>
+        <div class="view-item-costs">
+          <div class="view-cost-row"><span class="lbl">Wood Cost (per pc)</span><span class="val">₹${fmt(item._woodPerPc || 0)}</span></div>
+          <div class="view-cost-row"><span class="lbl">Lathe Cost (per pc)</span><span class="val">₹${fmt(item._lathePerPc || 0)}</span></div>
+          <div class="view-cost-row"><span class="lbl">Total Wood (×${item.qty})</span><span class="val">₹${fmt(item._woodTotal || 0)}</span></div>
+          <div class="view-cost-row"><span class="lbl">Total Lathe (×${item.qty})</span><span class="val">₹${fmt(item._latheTotal || 0)}</span></div>
+        </div>
+        ${item.notes ? `<div style="margin-top:10px;font-size:12px;color:var(--text3);">📝 ${item.notes}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="view-meta">
+      <div>
+        <div class="view-quote-num">${q.quoteNo}</div>
+        <div class="view-customer">${q.customerName}</div>
+        <div class="view-date">${formatDate(q.date)}${q.phone ? ' · ' + q.phone : ''}${q.deliveryDate ? ' · Delivery: ' + formatDate(q.deliveryDate) : ''}</div>
+        ${q.address ? `<div class="view-date" style="margin-top:4px;">${q.address}</div>` : ''}
+      </div>
+    </div>
+
+    ${itemsHtml}
+
+    <div class="view-summary">
+      <div class="totals-row"><span class="lbl">Wood Subtotal</span><span class="val">₹${fmt(q.subtotalWood || 0)}</span></div>
+      <div class="totals-row"><span class="lbl">Lathe Subtotal</span><span class="val">₹${fmt(q.subtotalLathe || 0)}</span></div>
+      <div class="totals-row"><span class="lbl">Subtotal</span><span class="val">₹${fmt(q.subtotal || 0)}</span></div>
+      ${q.discountAmount > 0 ? `<div class="totals-row"><span class="lbl">Discount ${q.discountType === 'pct' ? `(${q.discountVal}%)` : '(Flat)'}</span><span class="val" style="color:#e57373;">−₹${fmt(q.discountAmount)}</span></div>` : ''}
+      <div class="totals-grand">
+        <span style="font-family:'Playfair Display',serif;font-size:18px;color:var(--gold);">Grand Total</span>
+        <span style="font-family:'DM Mono',monospace;font-size:22px;color:var(--gold2);">₹${fmt(q.grandTotal || 0)}</span>
+      </div>
+    </div>
+
+    <div class="view-terms">${(q.terms || '').replace(/\n/g, '<br>')}</div>
+  `;
+}
+
+function editCurrentQuote() {
+  if (!currentQuote) return;
+  editingQuoteId = currentQuote.id;
+  window._pendingQuoteNo = currentQuote.quoteNo;
+  document.getElementById('builder-quote-num').textContent = currentQuote.quoteNo;
+
+  // Restore form
+  document.getElementById('cust-name').value = currentQuote.customerName || '';
+  document.getElementById('cust-phone').value = currentQuote.phone || '';
+  document.getElementById('cust-address').value = currentQuote.address || '';
+  document.getElementById('quote-date').value = currentQuote.date || todayStr();
+  document.getElementById('delivery-date').value = currentQuote.deliveryDate || '';
+  document.getElementById('terms-text').value = currentQuote.terms || '';
+  document.getElementById('discount-val').value = currentQuote.discountVal || '';
+  setDiscType(currentQuote.discountType || 'flat');
+
+  // Restore items
+  itemIdCounter = 0;
+  items = (currentQuote.items || []).map(it => ({
+    ...it,
+    id: ++itemIdCounter,
+  }));
+
+  renderItems();
+  items.forEach(it => calcItem(it.id));
+  recalcTotals();
+  showScreen('builder');
+}
+
+async function deleteCurrentQuote() {
+  if (!currentQuote) return;
+  if (!confirm(`Delete quote ${currentQuote.quoteNo}? This cannot be undone.`)) return;
+  showLoading(true);
+  try {
+    await deleteDoc(doc(db, 'lathepro_quotes', currentQuote.id));
+    toast('Quote deleted');
+    currentQuote = null;
+    goList();
+  } catch (e) {
+    toast('Error deleting');
+  }
+  showLoading(false);
+}
+
+// ══════════════════════════════════
+//   PDF — QUOTE
+// ══════════════════════════════════
+async function generateQuotePDF() {
+  const q = currentQuote;
+  if (!q && !editingQuoteId) { toast('Save quote first'); return; }
+
+  // If in builder, save first
+  if (document.getElementById('builder-screen').classList.contains('active')) {
+    await saveQuote();
+  }
+
+  const quote = currentQuote;
+  if (!quote) return;
+
+  showLoading(true);
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+    const W = 210, margin = 14;
+    let y = 0;
+
+    // Header bar
+    pdf.setFillColor(26, 18, 9);
+    pdf.rect(0, 0, W, 36, 'F');
+
+    pdf.setTextColor(201, 168, 76);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(22);
+    pdf.text('AMAR FURNITURE', margin, 16);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(180, 160, 100);
+    pdf.text('LathePro Quotation', margin, 23);
+    pdf.text('Nashik, Maharashtra | +91 XXXXX XXXXX', margin, 28);
+
+    // Quote meta (right side)
+    pdf.setTextColor(201, 168, 76);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.text(quote.quoteNo, W - margin, 14, { align: 'right' });
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(180, 160, 100);
+    pdf.text('Date: ' + formatDate(quote.date), W - margin, 21, { align: 'right' });
+    if (quote.deliveryDate) pdf.text('Delivery: ' + formatDate(quote.deliveryDate), W - margin, 27, { align: 'right' });
+
+    y = 44;
+
+    // Customer info box
+    pdf.setFillColor(240, 235, 220);
+    pdf.roundedRect(margin, y, W - margin * 2, 22, 2, 2, 'F');
+    pdf.setTextColor(60, 40, 10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.text('Bill To:', margin + 3, y + 7);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    pdf.text(quote.customerName, margin + 22, y + 7);
+    if (quote.phone) pdf.text('📞 ' + quote.phone, margin + 3, y + 14);
+    if (quote.address) pdf.text(quote.address.substring(0, 80), margin + 3, y + 19);
+
+    y += 28;
+
+    // Items
+    for (let i = 0; i < quote.items.length; i++) {
+      const item = quote.items[i];
+
+      // Check page space
+      if (y > 230) {
+        pdf.addPage();
+        y = 16;
+      }
+
+      // Item header
+      pdf.setFillColor(42, 34, 16);
+      pdf.roundedRect(margin, y, W - margin * 2, 8, 1, 1, 'F');
+      pdf.setTextColor(201, 168, 76);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.text(`ITEM ${String(i+1).padStart(2,'0')} · ${item.woodType}`, margin + 3, y + 5.5);
+      pdf.text(item.name || 'Unnamed', W/2, y + 5.5, { align: 'center' });
+      pdf.text('₹' + fmt(item._itemTotal || 0), W - margin - 3, y + 5.5, { align: 'right' });
+
+      y += 11;
+
+      // Photos row
+      if (item.photos && item.photos.length > 0) {
+        const photoSize = 22;
+        const gap = 3;
+        const maxPhotos = Math.min(item.photos.length, 5);
+
+        if (y + photoSize + 4 > 270) { pdf.addPage(); y = 16; }
+
+        for (let pi = 0; pi < maxPhotos; pi++) {
+          try {
+            pdf.addImage(item.photos[pi], 'JPEG', margin + pi * (photoSize + gap), y, photoSize, photoSize);
+          } catch {}
+        }
+        y += photoSize + 4;
+      }
+
+      // Specs table
+      const col1 = margin, col2 = margin + 50, col3 = margin + 105;
+      const rowH = 6;
+
+      const specs = [
+        ['Dimensions', `${item.length}ft × ${item.width}" × ${item.thickness}"`],
+        ['Qty', `${item.qty} pcs`],
+        ['CFT', (item._cft || 0).toFixed(4)],
+      ];
+
+      pdf.setFontSize(8);
+
+      specs.forEach((row, ri) => {
+        const ry = y + ri * rowH;
+        pdf.setTextColor(120, 100, 60);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(row[0], col1, ry);
+        pdf.setTextColor(40, 30, 10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(row[1], col2, ry);
+      });
+
+      y += specs.length * rowH + 2;
+
+      // Costs table
+      if (y + 26 > 270) { pdf.addPage(); y = 16; }
+
+      const costsHeader = [['Description', 'Rate', 'Per Pc', 'Qty', 'Amount']];
+      const costsRows = [
+        ['Wood Cost (' + item.woodType + ')', '₹' + fmt(item.woodRate) + '/CFT',
+          '₹' + fmt(item._woodPerPc || 0), '×' + item.qty, '₹' + fmt(item._woodTotal || 0)],
+        ['Lathe Work', '₹' + fmt(item.latheRate) + '/ft×in',
+          '₹' + fmt(item._lathePerPc || 0), '×' + item.qty, '₹' + fmt(item._latheTotal || 0)],
+      ];
+
+      const cols = [margin, margin+45, margin+95, margin+125, margin+145];
+      const tableW = W - margin * 2;
+
+      // Header
+      pdf.setFillColor(240, 232, 210);
+      pdf.rect(margin, y, tableW, 6, 'F');
+      pdf.setTextColor(80, 60, 20);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7.5);
+      ['Description', 'Rate', 'Per Pc', 'Qty', 'Amount'].forEach((h, ci) => {
+        pdf.text(h, cols[ci] + 1, y + 4.2);
+      });
+      y += 7;
+
+      costsRows.forEach((row, ri) => {
+        pdf.setFillColor(ri % 2 === 0 ? 252 : 248, ri % 2 === 0 ? 250 : 246, ri % 2 === 0 ? 244 : 238);
+        pdf.rect(margin, y, tableW, 6, 'F');
+        pdf.setTextColor(40, 30, 10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7.5);
+        row.forEach((cell, ci) => {
+          pdf.text(String(cell), cols[ci] + 1, y + 4.2);
+        });
+        y += 6;
+      });
+
+      // Item notes
+      if (item.notes) {
+        pdf.setFontSize(7);
+        pdf.setTextColor(140, 120, 80);
+        pdf.text('Note: ' + item.notes, margin, y + 4);
+        y += 6;
+      }
+
+      y += 6;
+    }
+
+    // Totals
+    if (y + 40 > 270) { pdf.addPage(); y = 16; }
+
+    const tw = 80, tx = W - margin - tw;
+    pdf.setFillColor(42, 34, 16);
+    pdf.roundedRect(tx, y, tw, 6, 1, 1, 'F');
+    pdf.setTextColor(201, 168, 76);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    pdf.text('SUMMARY', tx + tw/2, y + 4.2, { align: 'center' });
+    y += 8;
+
+    const summaryRows = [
+      ['Wood Subtotal', '₹' + fmt(quote.subtotalWood || 0)],
+      ['Lathe Subtotal', '₹' + fmt(quote.subtotalLathe || 0)],
+      ['Subtotal', '₹' + fmt(quote.subtotal || 0)],
+    ];
+
+    if (quote.discountAmount > 0) {
+      summaryRows.push([`Discount ${quote.discountType === 'pct' ? `(${quote.discountVal}%)` : '(Flat)'}`, '−₹' + fmt(quote.discountAmount)]);
+    }
+
+    summaryRows.forEach(row => {
+      pdf.setFillColor(250, 246, 238);
+      pdf.rect(tx, y, tw, 6, 'F');
+      pdf.setTextColor(80, 60, 20);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+      pdf.text(row[0], tx + 3, y + 4.2);
+      pdf.text(row[1], tx + tw - 3, y + 4.2, { align: 'right' });
+      y += 6;
+    });
+
+    // Grand total
+    pdf.setFillColor(26, 18, 9);
+    pdf.roundedRect(tx, y, tw, 10, 1, 1, 'F');
+    pdf.setTextColor(201, 168, 76);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.text('Grand Total', tx + 3, y + 6.8);
+    pdf.text('₹' + fmt(quote.grandTotal || 0), tx + tw - 3, y + 6.8, { align: 'right' });
+    y += 14;
+
+    // Terms
+    if (y + 30 > 270) { pdf.addPage(); y = 16; }
+    y += 4;
+    pdf.setTextColor(120, 100, 60);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    pdf.text('Terms & Conditions', margin, y);
+    y += 5;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7);
+    pdf.setTextColor(140, 120, 80);
+    const terms = (quote.terms || '').split('\n');
+    terms.forEach(line => {
+      pdf.text(line, margin, y);
+      y += 4.5;
+    });
+
+    // Footer
+    pdf.setFillColor(26, 18, 9);
+    pdf.rect(0, 285, W, 12, 'F');
+    pdf.setTextColor(120, 100, 60);
+    pdf.setFontSize(7);
+    pdf.text('LathePro by Amar Furniture · Powered by AppCentrik', W/2, 292, { align: 'center' });
+
+    pdf.save(`${quote.quoteNo}_${quote.customerName.replace(/\s+/g,'_')}_Quote.pdf`);
+    toast('PDF downloaded ✓');
+  } catch (e) {
+    toast('PDF error: ' + e.message);
+    console.error(e);
+  }
+  showLoading(false);
+}
+
+// ══════════════════════════════════
+//   PDF — JOB SHEET
+// ══════════════════════════════════
+async function generateJobSheet() {
+  const q = currentQuote;
+  if (!q && !editingQuoteId) { toast('Save quote first'); return; }
+
+  if (document.getElementById('builder-screen').classList.contains('active')) {
+    await saveQuote();
+  }
+
+  const quote = currentQuote;
+  if (!quote) return;
+
+  showLoading(true);
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+    const W = 210, margin = 14;
+    let y = 0;
+
+    // Header
+    pdf.setFillColor(26, 18, 9);
+    pdf.rect(0, 0, W, 36, 'F');
+
+    pdf.setTextColor(201, 168, 76);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(20);
+    pdf.text('AMAR FURNITURE', margin, 15);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(180, 160, 100);
+    pdf.text('LATHE WORK — JOB SHEET', margin, 22);
+    pdf.text('Nashik, Maharashtra', margin, 28);
+
+    pdf.setTextColor(201, 168, 76);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.text(quote.quoteNo + ' / JOB', W - margin, 14, { align: 'right' });
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(180, 160, 100);
+    pdf.text('Date: ' + formatDate(quote.date), W - margin, 21, { align: 'right' });
+    if (quote.deliveryDate) {
+      pdf.setTextColor(255, 180, 80);
+      pdf.text('Deadline: ' + formatDate(quote.deliveryDate), W - margin, 28, { align: 'right' });
+    }
+
+    y = 44;
+
+    // Customer row
+    pdf.setFillColor(240, 235, 220);
+    pdf.roundedRect(margin, y, W - margin * 2, 12, 2, 2, 'F');
+    pdf.setTextColor(60, 40, 10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.text('Customer:', margin + 3, y + 5);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(quote.customerName, margin + 28, y + 5);
+    if (quote.phone) pdf.text('Phone: ' + quote.phone, W - margin - 3, y + 5, { align: 'right' });
+
+    y += 16;
+
+    // Items
+    for (let i = 0; i < quote.items.length; i++) {
+      const item = quote.items[i];
+
+      if (y > 245) { pdf.addPage(); y = 16; }
+
+      // Item header
+      pdf.setFillColor(42, 34, 16);
+      pdf.roundedRect(margin, y, W - margin * 2, 8, 1, 1, 'F');
+      pdf.setTextColor(201, 168, 76);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.text(`ITEM ${String(i+1).padStart(2,'0')}`, margin + 3, y + 5.5);
+      pdf.text((item.name || 'Unnamed Item') + ' · ' + item.woodType, W/2, y + 5.5, { align: 'center' });
+      pdf.text(`QTY: ${item.qty} pcs`, W - margin - 3, y + 5.5, { align: 'right' });
+      y += 11;
+
+      // Photos
+      if (item.photos && item.photos.length > 0) {
+        const photoSize = 30;
+        const gap = 4;
+        const maxPhotos = Math.min(item.photos.length, 4);
+
+        if (y + photoSize + 6 > 270) { pdf.addPage(); y = 16; }
+
+        pdf.setFontSize(7);
+        pdf.setTextColor(140, 120, 80);
+        pdf.text('Reference Photos:', margin, y + 4);
+
+        const photoY = y + 6;
+        for (let pi = 0; pi < maxPhotos; pi++) {
+          try {
+            pdf.addImage(item.photos[pi], 'JPEG', margin + pi * (photoSize + gap), photoY, photoSize, photoSize);
+          } catch {}
+        }
+        y = photoY + photoSize + 5;
+      }
+
+      // Specs
+      pdf.setFontSize(8);
+      const specs = [
+        { l: 'Dimensions', v: `${item.length} ft × ${item.width}" × ${item.thickness}"` },
+        { l: 'Wood Type', v: item.woodType },
+        { l: 'CFT per piece', v: (item._cft || 0).toFixed(4) },
+        { l: 'Quantity', v: `${item.qty} pieces` },
+      ];
+
+      const colW = (W - margin * 2) / 2;
+      specs.forEach((s, si) => {
+        const cx = margin + (si % 2) * colW;
+        const ry = y + Math.floor(si / 2) * 7;
+        pdf.setFillColor(si % 4 < 2 ? 250 : 244, si % 4 < 2 ? 248 : 242, si % 4 < 2 ? 240 : 232);
+        pdf.rect(cx, ry, colW, 7, 'F');
+        pdf.setTextColor(120, 100, 60);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(s.l + ':', cx + 2, ry + 4.5);
+        pdf.setTextColor(40, 30, 10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(s.v, cx + colW/2, ry + 4.5);
+      });
+      y += Math.ceil(specs.length / 2) * 7 + 3;
+
+      // Notes / instructions
+      if (item.notes) {
+        if (y + 12 > 270) { pdf.addPage(); y = 16; }
+        pdf.setFillColor(255, 248, 220);
+        pdf.roundedRect(margin, y, W - margin * 2, 10, 1, 1, 'F');
+        pdf.setTextColor(140, 100, 20);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(7);
+        pdf.text('⚠ Special Instructions:', margin + 3, y + 4);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(item.notes, margin + 3, y + 8);
+        y += 13;
+      }
+
+      y += 6;
+    }
+
+    // Deadline box
+    if (y + 20 > 270) { pdf.addPage(); y = 16; }
+    if (quote.deliveryDate) {
+      pdf.setFillColor(255, 240, 200);
+      pdf.roundedRect(margin, y, W - margin * 2, 12, 2, 2, 'F');
+      pdf.setTextColor(180, 100, 20);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(10);
+      pdf.text('⏰ DEADLINE: ' + formatDate(quote.deliveryDate), W/2, y + 7.5, { align: 'center' });
+      y += 16;
+    }
+
+    // Signature
+    if (y + 30 > 270) { pdf.addPage(); y = 16; }
+    y += 6;
+    pdf.setDrawColor(180, 160, 100);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, y + 15, margin + 60, y + 15);
+    pdf.line(W - margin - 60, y + 15, W - margin, y + 15);
+    pdf.setFontSize(7);
+    pdf.setTextColor(140, 120, 80);
+    pdf.text('Supervisor Signature', margin, y + 19);
+    pdf.text('Worker Signature', W - margin, y + 19, { align: 'right' });
+
+    // Footer
+    pdf.setFillColor(26, 18, 9);
+    pdf.rect(0, 285, W, 12, 'F');
+    pdf.setTextColor(120, 100, 60);
+    pdf.setFontSize(7);
+    pdf.text('LathePro Job Sheet · Amar Furniture · Nashik', W/2, 292, { align: 'center' });
+
+    pdf.save(`${quote.quoteNo}_JobSheet.pdf`);
+    toast('Job Sheet downloaded ✓');
+  } catch (e) {
+    toast('Error: ' + e.message);
+    console.error(e);
+  }
+  showLoading(false);
+}
+
+// ══════════════════════════════════
+//   WHATSAPP SHARE
+// ══════════════════════════════════
+function shareWhatsApp() {
+  const q = currentQuote;
+  if (!q) return;
+  const msg = `*LathePro Quote — Amar Furniture*
+━━━━━━━━━━━━━━━━
+*Quote:* ${q.quoteNo}
+*Customer:* ${q.customerName}
+*Date:* ${formatDate(q.date)}${q.deliveryDate ? '\n*Delivery:* ' + formatDate(q.deliveryDate) : ''}
+
+${(q.items || []).map((it, i) =>
+  `*Item ${i+1}: ${it.name || 'Item'}*
+  • ${it.woodType} · ${it.length}ft × ${it.width}" × ${it.thickness}" × ${it.qty}pcs
+  • Wood: ₹${fmt(it._woodTotal || 0)} | Lathe: ₹${fmt(it._latheTotal || 0)}`
+).join('\n')}
+
+━━━━━━━━━━━━━━━━
+*Wood Total:* ₹${fmt(q.subtotalWood || 0)}
+*Lathe Total:* ₹${fmt(q.subtotalLathe || 0)}
+${q.discountAmount > 0 ? `*Discount:* −₹${fmt(q.discountAmount)}\n` : ''}*Grand Total: ₹${fmt(q.grandTotal || 0)}*
+
+GST will be charged extra as applicable.
+_Amar Furniture, Nashik_`;
+
+  const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+}
+
+// ══════════════════════════════════
+//   UTILS
+// ══════════════════════════════════
+function fmt(n) {
+  return Number(n).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function formatDate(str) {
+  if (!str) return '';
+  try {
+    const d = new Date(str);
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch { return str; }
+}
+
+function showLoading(show) {
+  document.getElementById('loading').classList.toggle('show', show);
+}
+
+let _toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ══════════════════════════════════
+//   VERSION & APP CONSTANTS
+// ══════════════════════════════════
+const APP_VERSION = '1.0.0';
+const DRAFT_KEY = 'lathepro_draft';
+const DRAFT_DISMISS_KEY = 'lathepro_install_dismissed';
+
+// ══════════════════════════════════
+//   SERVICE WORKER REGISTRATION
+// ══════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => {
+        console.log('[LathePro] SW registered, scope:', reg.scope);
+
+        // Detect new SW waiting — prompt user to update
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              if (confirm('🔄 LathePro update available! Reload to get the latest version?')) {
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                window.location.reload();
+              }
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[LathePro] SW registration failed:', err));
+
+    // Reload when new SW takes control
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) { refreshing = true; window.location.reload(); }
+    });
+  });
+}
+
+// ══════════════════════════════════
+//   ONLINE / OFFLINE DETECTION
+// ══════════════════════════════════
+function updateOnlineStatus() {
+  document.getElementById('offline-banner').classList.toggle('show', !navigator.onLine);
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+// ══════════════════════════════════
+//   PWA INSTALL PROMPT
+// ══════════════════════════════════
+let _deferredInstallPrompt = null;
+window.installApp = installApp;
+window.dismissInstall = dismissInstall;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  if (!localStorage.getItem(DRAFT_DISMISS_KEY)) {
+    setTimeout(() => {
+      document.getElementById('install-banner').classList.add('show');
+    }, 3000);
+  }
+});
+
+function installApp() {
+  if (!_deferredInstallPrompt) return;
+  _deferredInstallPrompt.prompt();
+  _deferredInstallPrompt.userChoice.then(() => {
+    _deferredInstallPrompt = null;
+    document.getElementById('install-banner').classList.remove('show');
+  });
+}
+
+function dismissInstall() {
+  document.getElementById('install-banner').classList.remove('show');
+  localStorage.setItem(DRAFT_DISMISS_KEY, '1');
+}
+
+// ══════════════════════════════════
+//   AUTO-SAVE DRAFT
+// ══════════════════════════════════
+let _autoSaveTimer = null;
+window.restoreDraft = restoreDraft;
+window.discardDraft = discardDraft;
+
+function triggerAutoSave() {
+  setAutosaveStatus('saving');
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => {
+    saveDraftToLocal();
+    setAutosaveStatus('saved');
+    setTimeout(() => setAutosaveStatus('idle'), 2000);
+  }, 1200);
+}
+
+function saveDraftToLocal() {
+  try {
+    items.forEach(it => calcItem(it.id));
+    const draft = {
+      quoteNo: window._pendingQuoteNo,
+      editingId: editingQuoteId,
+      customerName: document.getElementById('cust-name').value,
+      phone: document.getElementById('cust-phone').value,
+      address: document.getElementById('cust-address').value,
+      date: document.getElementById('quote-date').value,
+      deliveryDate: document.getElementById('delivery-date').value,
+      terms: document.getElementById('terms-text').value,
+      discountType,
+      discountVal: document.getElementById('discount-val').value,
+      items: items.map(it => ({ ...it })),
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch (e) {
+    console.warn('Draft save failed', e);
+  }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+}
+
+function checkForDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return false;
+    const draft = JSON.parse(raw);
+    // Only show if draft is for a new quote (no editingId) or same as current editing
+    if (draft && (draft.customerName || draft.items?.length > 0)) return draft;
+  } catch {}
+  return false;
+}
+
+function restoreDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+
+    window._pendingQuoteNo = draft.quoteNo;
+    editingQuoteId = draft.editingId || null;
+    document.getElementById('builder-quote-num').textContent = draft.quoteNo || '';
+    document.getElementById('cust-name').value = draft.customerName || '';
+    document.getElementById('cust-phone').value = draft.phone || '';
+    document.getElementById('cust-address').value = draft.address || '';
+    document.getElementById('quote-date').value = draft.date || todayStr();
+    document.getElementById('delivery-date').value = draft.deliveryDate || '';
+    document.getElementById('terms-text').value = draft.terms || '';
+    document.getElementById('discount-val').value = draft.discountVal || '';
+    setDiscType(draft.discountType || 'flat');
+
+    itemIdCounter = 0;
+    items = (draft.items || []).map(it => ({ ...it, id: ++itemIdCounter }));
+    renderItems();
+    items.forEach(it => calcItem(it.id));
+    recalcTotals();
+
+    document.getElementById('draft-banner').classList.remove('show');
+    toast('Draft restored ✓');
+  } catch (e) {
+    toast('Could not restore draft');
+  }
+}
+
+function discardDraft() {
+  clearDraft();
+  document.getElementById('draft-banner').classList.remove('show');
+}
+
+function setAutosaveStatus(status) {
+  const el = document.getElementById('autosave-indicator');
+  const txt = document.getElementById('autosave-text');
+  if (!el) return;
+  el.className = 'autosave-indicator ' + (status !== 'idle' ? status : '');
+  if (status === 'saving') txt.textContent = 'saving…';
+  else if (status === 'saved') txt.textContent = 'draft saved';
+  else txt.textContent = 'draft';
+}
+
+// Hook auto-save to all builder inputs
+function hookAutoSave() {
+  const builder = document.getElementById('builder-screen');
+  builder.addEventListener('input', () => triggerAutoSave());
+  builder.addEventListener('change', () => triggerAutoSave());
+}
+
+// ══════════════════════════════════
+//   Init
+// ══════════════════════════════════
+document.getElementById('quote-date').value = todayStr();
+hookAutoSave();
+
+</script>
+</body>
+</html>
