@@ -897,7 +897,7 @@
   <div class="app-header no-print">
     <div>
       <div class="header-logo">LathePro</div>
-      <div class="version-tag">v1.0.1</div>
+      <div class="version-tag">v1.0.2</div>
     </div>
     <div class="header-actions">
       <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
@@ -920,7 +920,7 @@
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
       <div>
         <div class="header-logo" style="font-size:18px;">LathePro</div>
-        <div class="version-tag">v1.0.1</div>
+        <div class="version-tag">v1.0.2</div>
       </div>
     </div>
     <div class="header-actions">
@@ -1335,35 +1335,35 @@ function renderItemCard(item, idx) {
       <div class="form-row three">
         <div class="form-group">
           <label>Length (ft)</label>
-          <input type="number" placeholder="3" min="0" step="0.1" value="${item.length}"
-            oninput="updateItem(${item.id},'length',this.value);calcItem(${item.id})">
+          <input type="number" placeholder="3" min="0" step="0.1" value="${item.length || ''}"
+            oninput="updateItem(${item.id},'length',this.value)">
         </div>
         <div class="form-group">
           <label>Width (inches)</label>
-          <input type="number" placeholder="6" min="0" step="0.5" value="${item.width}"
-            oninput="updateItem(${item.id},'width',this.value);calcItem(${item.id})">
+          <input type="number" placeholder="6" min="0" step="0.5" value="${item.width || ''}"
+            oninput="updateItem(${item.id},'width',this.value)">
         </div>
         <div class="form-group">
           <label>Thickness (inches)</label>
-          <input type="number" placeholder="6" min="0" step="0.5" value="${item.thickness}"
-            oninput="updateItem(${item.id},'thickness',this.value);calcItem(${item.id})">
+          <input type="number" placeholder="6" min="0" step="0.5" value="${item.thickness || ''}"
+            oninput="updateItem(${item.id},'thickness',this.value)">
         </div>
       </div>
       <div class="form-row three">
         <div class="form-group">
           <label>Qty (pcs)</label>
-          <input type="number" placeholder="1" min="1" value="${item.qty}"
-            oninput="updateItem(${item.id},'qty',this.value);calcItem(${item.id})">
+          <input type="number" placeholder="1" min="1" value="${item.qty || 1}"
+            oninput="updateItem(${item.id},'qty',this.value)">
         </div>
         <div class="form-group">
           <label>Wood Rate (₹/CFT)</label>
-          <input type="number" placeholder="${DEFAULT_WOOD_RATE}" value="${item.woodRate}"
-            oninput="updateItem(${item.id},'woodRate',this.value);calcItem(${item.id})">
+          <input type="number" placeholder="${DEFAULT_WOOD_RATE}" value="${item.woodRate || DEFAULT_WOOD_RATE}"
+            oninput="updateItem(${item.id},'woodRate',this.value)">
         </div>
         <div class="form-group">
           <label>Lathe Rate (₹/ft×in)</label>
-          <input type="number" placeholder="${DEFAULT_LATHE_RATE}" value="${item.latheRate}"
-            oninput="updateItem(${item.id},'latheRate',this.value);calcItem(${item.id})">
+          <input type="number" placeholder="${DEFAULT_LATHE_RATE}" value="${item.latheRate || DEFAULT_LATHE_RATE}"
+            oninput="updateItem(${item.id},'latheRate',this.value)">
         </div>
       </div>
       <div class="form-row full">
@@ -1415,46 +1415,73 @@ function updateItem(id, field, value) {
                 field === 'length' || field === 'width' || field === 'thickness' || field === 'latheDia'
     ? parseFloat(value) || 0
     : value;
+  calcItem(id);
 }
 
 function calcItem(id) {
   const item = items.find(i => i.id === id);
   if (!item) return;
 
-  const L = parseFloat(item.length) || 0;
-  const W = parseFloat(item.width) || 0;
-  const T = parseFloat(item.thickness) || 0;
-  const qty = parseInt(item.qty) || 1;
-  const woodRate = parseFloat(item.woodRate) || DEFAULT_WOOD_RATE;
-  const latheRate = parseFloat(item.latheRate) || DEFAULT_LATHE_RATE;
+  // Read directly from DOM inputs so values are always current
+  const getVal = (selector) => {
+    const el = document.querySelector(`#item-card-${id} ${selector}`);
+    return el ? parseFloat(el.value) || 0 : 0;
+  };
+
+  // Pull from item state (already updated by updateItem) — but also
+  // sync from DOM in case renderItems was called after user typed
+  const card = document.getElementById(`item-card-${id}`);
+  if (card) {
+    const inputs = card.querySelectorAll('input[type="number"]');
+    // inputs order: length, width, thickness, qty, woodRate, latheRate
+    if (inputs.length >= 6) {
+      item.length    = parseFloat(inputs[0].value) || 0;
+      item.width     = parseFloat(inputs[1].value) || 0;
+      item.thickness = parseFloat(inputs[2].value) || 0;
+      item.qty       = parseInt(inputs[3].value)   || 1;
+      item.woodRate  = parseFloat(inputs[4].value) || DEFAULT_WOOD_RATE;
+      item.latheRate = parseFloat(inputs[5].value) || DEFAULT_LATHE_RATE;
+    }
+  }
+
+  const L         = item.length    || 0;
+  const W         = item.width     || 0;
+  const T         = item.thickness || 0;
+  const qty       = item.qty       || 1;
+  const woodRate  = item.woodRate  || DEFAULT_WOOD_RATE;
+  const latheRate = item.latheRate || DEFAULT_LATHE_RATE;
 
   // CFT = L × W × T / 144
-  const cft = L * W * T / 144;
+  const cft       = L * W * T / 144;
   const woodPerPc = cft * woodRate;
 
   // Lathe = L × W × rate
   const lathePerPc = L * W * latheRate;
 
-  const woodTotal = woodPerPc * qty;
+  const woodTotal  = woodPerPc  * qty;
   const latheTotal = lathePerPc * qty;
-  const itemTotal = woodTotal + latheTotal;
+  const itemTotal  = woodTotal  + latheTotal;
 
-  // Store
-  item._cft = cft;
-  item._woodPerPc = woodPerPc;
+  // Store computed values
+  item._cft        = cft;
+  item._woodPerPc  = woodPerPc;
   item._lathePerPc = lathePerPc;
-  item._woodTotal = woodTotal;
+  item._woodTotal  = woodTotal;
   item._latheTotal = latheTotal;
-  item._itemTotal = itemTotal;
+  item._itemTotal  = itemTotal;
 
-  // Update display
-  const s = id => document.getElementById(id);
-  if (s(`cft-${id}`)) s(`cft-${id}`).textContent = cft.toFixed(4);
-  if (s(`wood-pc-${id}`)) s(`wood-pc-${id}`).textContent = '₹' + fmt(woodPerPc);
-  if (s(`lathe-pc-${id}`)) s(`lathe-pc-${id}`).textContent = '₹' + fmt(lathePerPc);
-  if (s(`wood-total-${id}`)) s(`wood-total-${id}`).textContent = '₹' + fmt(woodTotal);
-  if (s(`lathe-total-${id}`)) s(`lathe-total-${id}`).textContent = '₹' + fmt(latheTotal);
-  if (s(`item-total-${id}`)) s(`item-total-${id}`).textContent = '₹' + fmt(itemTotal);
+  // Update display spans
+  const el = sid => document.getElementById(sid);
+  if (el(`cft-${id}`))        el(`cft-${id}`).textContent        = cft.toFixed(4);
+  if (el(`wood-pc-${id}`))    el(`wood-pc-${id}`).textContent    = '₹' + fmt(woodPerPc);
+  if (el(`lathe-pc-${id}`))   el(`lathe-pc-${id}`).textContent   = '₹' + fmt(lathePerPc);
+  if (el(`wood-total-${id}`)) el(`wood-total-${id}`).textContent = '₹' + fmt(woodTotal);
+  if (el(`lathe-total-${id}`))el(`lathe-total-${id}`).textContent= '₹' + fmt(latheTotal);
+  if (el(`item-total-${id}`)) el(`item-total-${id}`).textContent = '₹' + fmt(itemTotal);
+
+  // Update qty display in calc box
+  const qtySpan = el(`calc-${id}`)?.querySelector('.calc-val:nth-child(4)');
+  if (qtySpan) qtySpan.textContent = qty;
 
   recalcTotals();
 }
@@ -1507,9 +1534,7 @@ function addPhotos(itemId, input) {
       item.photos.push(e.target.result);
       loaded++;
       if (loaded === files.length) {
-        renderItems();
-        // Restore calc values by re-running calcItem for all
-        items.forEach(it => { if (it._cft !== undefined) calcItem(it.id); });
+        refreshPhotosGrid(itemId);
       }
     };
     reader.readAsDataURL(file);
@@ -1520,8 +1545,27 @@ function removePhoto(itemId, photoIdx) {
   const item = items.find(i => i.id === itemId);
   if (!item) return;
   item.photos.splice(photoIdx, 1);
-  renderItems();
-  items.forEach(it => { if (it._cft !== undefined) calcItem(it.id); });
+  refreshPhotosGrid(itemId);
+}
+
+// Only re-renders the photos grid — does NOT wipe the whole item card
+function refreshPhotosGrid(itemId) {
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+  const grid = document.getElementById(`photos-grid-${itemId}`);
+  if (!grid) return;
+  const thumbs = item.photos.map((p, pi) => `
+    <div class="photo-wrap">
+      <img src="${p}" alt="photo">
+      <button class="photo-remove" onclick="removePhoto(${itemId}, ${pi})">×</button>
+    </div>
+  `).join('');
+  grid.innerHTML = `
+    ${thumbs}
+    <label class="photo-add-btn" for="photo-input-${itemId}" title="Add photo">+</label>
+    <input type="file" id="photo-input-${itemId}" accept="image/*" multiple style="display:none"
+      onchange="addPhotos(${itemId}, this)">
+  `;
 }
 
 // ══════════════════════════════════
@@ -2237,7 +2281,7 @@ function toast(msg) {
 // ══════════════════════════════════
 //   VERSION & APP CONSTANTS
 // ══════════════════════════════════
-const APP_VERSION = '1.0.1';
+const APP_VERSION = '1.0.2';
 const DRAFT_KEY = 'lathepro_draft';
 const DRAFT_DISMISS_KEY = 'lathepro_install_dismissed';
 
