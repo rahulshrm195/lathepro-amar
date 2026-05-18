@@ -256,7 +256,7 @@ textarea{resize:vertical;min-height:60px;}
 <!-- LIST -->
 <div id="list-screen" class="screen">
   <div class="app-header">
-    <div><div class="header-logo">LathePro</div><div class="version-tag">v1.0.5</div></div>
+    <div><div class="header-logo">LathePro</div><div class="version-tag">v1.0.6</div></div>
     <div class="header-actions">
       <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
       <button class="btn btn-outline btn-icon" onclick="lockApp()">🔒</button>
@@ -276,7 +276,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;">LathePro</div><div class="version-tag">v1.0.5</div></div>
+      <div><div class="header-logo" style="font-size:17px;">LathePro</div><div class="version-tag">v1.0.6</div></div>
     </div>
     <div class="header-actions">
       <div class="autosave-indicator" id="autosave-indicator"><div class="autosave-dot"></div><span id="autosave-text">draft</span></div>
@@ -347,7 +347,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;">LathePro</div><div class="version-tag">v1.0.5</div></div>
+      <div><div class="header-logo" style="font-size:17px;">LathePro</div><div class="version-tag">v1.0.6</div></div>
     </div>
     <div class="view-actions">
       <button class="btn btn-outline btn-sm" onclick="editCurrentQuote()">✏️ Edit</button>
@@ -391,7 +391,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore,collection,addDoc,getDocs,doc,updateDoc,deleteDoc,query,orderBy,getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const firebaseConfig={apiKey:"AIzaSyARVv1P0ssuKzfpS1M59AB-rG3riIWh-2c",authDomain:"amar-furniture-e4782.firebaseapp.com",projectId:"amar-furniture-e4782",storageBucket:"amar-furniture-e4782.firebasestorage.app",messagingSenderId:"1084205045390",appId:"1:1084205045390:web:e3c782b318e872629c5bdf"};
-const APP_VERSION='1.0.5',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
+const APP_VERSION='1.0.6',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
 const PIN="1234",WOOD_TYPES=["Teak","Khair","Sagwan","Mango","Sheesham","Other"];
 const DEFAULT_WOOD_RATE=5500,DEFAULT_LATHE_RATE=100;
 const app=initializeApp(firebaseConfig),db=getFirestore(app);
@@ -446,18 +446,18 @@ function renderItemCard(item,idx){
       <div class="form-group"><label>Qty (pcs)</label><input type="number" placeholder="1" min="1" value="${item.qty||1}" oninput="updateItem(${item.id},'qty',this.value)"></div>
     </div>
     <div class="item-row2">
-      <div class="form-group"><label>Length (ft)</label><input type="number" placeholder="3" min="0" step="0.1" value="${item.length||''}" oninput="updateItem(${item.id},'length',this.value)"></div>
+      <div class="form-group"><label>Length (in)</label><input type="number" placeholder="36" min="0" step="0.5" value="${item.length||''}" oninput="updateItem(${item.id},'length',this.value)"></div>
       <div class="form-group"><label>Width (in)</label><input type="number" placeholder="6" min="0" step="0.5" value="${item.width||''}" oninput="updateItem(${item.id},'width',this.value)"></div>
       <div class="form-group"><label>Thickness (in)</label><input type="number" placeholder="6" min="0" step="0.5" value="${item.thickness||''}" oninput="updateItem(${item.id},'thickness',this.value)"></div>
       <div class="form-group"><label>Wood ₹/CFT</label><input type="number" placeholder="${DEFAULT_WOOD_RATE}" value="${item.woodRate||DEFAULT_WOOD_RATE}" oninput="updateItem(${item.id},'woodRate',this.value)"></div>
-      <div class="form-group"><label>Lathe ₹/ft×in</label><input type="number" placeholder="${DEFAULT_LATHE_RATE}" value="${item.latheRate||DEFAULT_LATHE_RATE}" oninput="updateItem(${item.id},'latheRate',this.value)"></div>
+      <div class="form-group"><label>Lathe ₹/in×in</label><input type="number" placeholder="${DEFAULT_LATHE_RATE}" value="${item.latheRate||DEFAULT_LATHE_RATE}" oninput="updateItem(${item.id},'latheRate',this.value)"></div>
     </div>
     <div class="calc-bar" id="calc-${item.id}">
       <div class="calc-chip"><span class="calc-chip-label">CFT</span><span class="calc-chip-val" id="cft-${item.id}">—</span></div>
       <div class="calc-dv"></div>
       <div class="calc-chip"><span class="calc-chip-label">Wood/pc</span><span class="calc-chip-val" id="wood-pc-${item.id}">—</span></div>
       <div class="calc-dv"></div>
-      <div class="calc-chip"><span class="calc-chip-label">Lathe/pc</span><span class="calc-chip-val" id="lathe-pc-${item.id}">—</span></div>
+      <div class="calc-chip"><span class="calc-chip-label">Lathe ₹/in×in</span><span class="calc-chip-val" id="lathe-pc-${item.id}">—</span></div>
       <div class="calc-dv"></div>
       <div class="calc-chip"><span class="calc-chip-label" id="ql-wood-${item.id}">Wood×${item.qty||1}</span><span class="calc-chip-val" id="wood-total-${item.id}">—</span></div>
       <div class="calc-dv"></div>
@@ -490,7 +490,8 @@ function calcItem(id){
     if(inp.length>=6){item.qty=parseInt(inp[0].value)||1;item.length=parseFloat(inp[1].value)||0;item.width=parseFloat(inp[2].value)||0;item.thickness=parseFloat(inp[3].value)||0;item.woodRate=parseFloat(inp[4].value)||DEFAULT_WOOD_RATE;item.latheRate=parseFloat(inp[5].value)||DEFAULT_LATHE_RATE;}
   }
   const L=item.length||0,W=item.width||0,T=item.thickness||0,qty=item.qty||1,wR=item.woodRate||DEFAULT_WOOD_RATE,lR=item.latheRate||DEFAULT_LATHE_RATE;
-  const cft=L*W*T/144,woodPerPc=cft*wR,lathePerPc=L*W*lR,woodTotal=woodPerPc*qty,latheTotal=lathePerPc*qty,itemTotal=woodTotal+latheTotal;
+  // All dims in inches now: CFT = L×W×T÷1728 | Lathe = L×W×Rate
+  const cft=L*W*T/1728,woodPerPc=cft*wR,lathePerPc=L*W*lR,woodTotal=woodPerPc*qty,latheTotal=lathePerPc*qty,itemTotal=woodTotal+latheTotal;
   item._cft=cft;item._woodPerPc=woodPerPc;item._lathePerPc=lathePerPc;item._woodTotal=woodTotal;item._latheTotal=latheTotal;item._itemTotal=itemTotal;
   const el=s=>document.getElementById(s);
   if(el(`cft-${id}`))el(`cft-${id}`).textContent=cft.toFixed(4);
@@ -537,7 +538,7 @@ async function openQuote(id){showLoading(true);try{const snap=await getDoc(doc(d
 
 function renderView(q){
   const el=document.getElementById('view-body');
-  const rows=(q.items||[]).map((item,idx)=>`<div class="view-table-row"><div class="view-row-top"><div class="view-col-num">${String(idx+1).padStart(2,'0')}</div><div><div class="view-col-name">${item.name||'Unnamed'}</div><div class="view-col-sub">${item.woodType} · ${(item._cft||0).toFixed(4)} CFT</div></div><div style="font-size:11px;color:var(--text2);">${item.length}ft×${item.width}"×${item.thickness}"</div><div class="view-col-r">${item.qty}×</div><div class="view-col-r">₹${fmt(item._woodTotal||0)}</div><div class="view-col-r">₹${fmt(item._latheTotal||0)}</div><div class="view-col-total">₹${fmt(item._itemTotal||0)}</div></div>${item.photos&&item.photos.length?`<div class="view-row-photos">${item.photos.map(p=>`<img src="${p}" alt="ref">`).join('')}</div>`:''  }${item.notes?`<div class="view-row-note">📝 ${item.notes}</div>`:''}</div>`).join('');
+  const rows=(q.items||[]).map((item,idx)=>`<div class="view-table-row"><div class="view-row-top"><div class="view-col-num">${String(idx+1).padStart(2,'0')}</div><div><div class="view-col-name">${item.name||'Unnamed'}</div><div class="view-col-sub">${item.woodType} · ${(item._cft||0).toFixed(4)} CFT</div></div><div style="font-size:11px;color:var(--text2);">${item.length}"×${item.width}"×${item.thickness}"</div><div class="view-col-r">${item.qty}×</div><div class="view-col-r">₹${fmt(item._woodTotal||0)}</div><div class="view-col-r">₹${fmt(item._latheTotal||0)}</div><div class="view-col-total">₹${fmt(item._itemTotal||0)}</div></div>${item.photos&&item.photos.length?`<div class="view-row-photos">${item.photos.map(p=>`<img src="${p}" alt="ref">`).join('')}</div>`:''  }${item.notes?`<div class="view-row-note">📝 ${item.notes}</div>`:''}</div>`).join('');
   el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px;"><div><div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);letter-spacing:1px;">${q.quoteNo}</div><div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--text);margin-top:3px;">${q.customerName}</div><div style="font-size:12px;color:var(--text3);margin-top:3px;">${formatDate(q.date)}${q.phone?' · '+q.phone:''}${q.deliveryDate?' · Delivery: '+formatDate(q.deliveryDate):''}</div>${q.address?`<div style="font-size:12px;color:var(--text3);margin-top:2px;">${q.address}</div>`:''}</div></div>
   <div class="view-table"><div class="view-table-header"><span>#</span><span>Item</span><span>Dims</span><span>Qty</span><span style="text-align:right;">Wood</span><span style="text-align:right;">Lathe</span><span style="text-align:right;">Total</span></div>${rows}</div>
   <div class="view-summary-inline"><div class="totals-row"><span class="lbl">Wood Subtotal</span><span class="val">₹${fmt(q.subtotalWood||0)}</span></div><div class="totals-row"><span class="lbl">Lathe Subtotal</span><span class="val">₹${fmt(q.subtotalLathe||0)}</span></div><div class="totals-row"><span class="lbl">Subtotal</span><span class="val">₹${fmt(q.subtotal||0)}</span></div>${q.discountAmount>0?`<div class="totals-row"><span class="lbl">Discount</span><span class="val" style="color:var(--red);">−₹${fmt(q.discountAmount)}</span></div>`:''}<div class="totals-grand"><span class="lbl">Grand Total</span><span class="val">₹${fmt(q.grandTotal||0)}</span></div></div>
@@ -562,7 +563,7 @@ function downloadCurrentPreview(){closePreview();if(_previewMode==='job')generat
 function buildQuotePreviewHTML(q){
   const rows=(q.items||[]).map((item,idx)=>{
     const photos=item.photos&&item.photos.length?`<tr class="item-photo-row"><td colspan="6"><div class="preview-photo-strip">${item.photos.slice(0,5).map(p=>`<img src="${p}">`).join('')}</div></td></tr>`:'';
-    return `<tr class="item-header-row"><td colspan="6"><span style="font-size:10px;color:#9a6e2e;margin-right:8px;">ITEM ${String(idx+1).padStart(2,'0')}</span>${item.name||'—'}<span style="font-size:11px;color:#9e8460;margin-left:8px;">· ${item.woodType} · ${item.length}ft×${item.width}"×${item.thickness}" · ${item.qty}pcs · CFT:${(item._cft||0).toFixed(4)}</span></td></tr>${photos}<tr class="item-cost-row"><td>Wood Cost (${item.woodType})</td><td>₹${fmt(item.woodRate)}/CFT</td><td>₹${fmt(item._woodPerPc||0)}</td><td>×${item.qty}</td><td></td><td>₹${fmt(item._woodTotal||0)}</td></tr><tr class="item-cost-row" style="border-bottom:2px solid #e2d9c8;"><td>Lathe Work</td><td>₹${fmt(item.latheRate)}/ft×in</td><td>₹${fmt(item._lathePerPc||0)}</td><td>×${item.qty}</td><td></td><td>₹${fmt(item._itemTotal||0)}</td></tr>${item.notes?`<tr><td colspan="6" style="padding:3px 8px 8px;font-size:11px;color:#9e8460;border-bottom:1px solid #e2d9c8;">📝 ${item.notes}</td></tr>`:''}`;}).join('');
+    return `<tr class="item-header-row"><td colspan="6"><span style="font-size:10px;color:#9a6e2e;margin-right:8px;">ITEM ${String(idx+1).padStart(2,'0')}</span>${item.name||'—'}<span style="font-size:11px;color:#9e8460;margin-left:8px;">· ${item.woodType} · ${item.length}"×${item.width}"×${item.thickness}" · ${item.qty}pcs · CFT:${(item._cft||0).toFixed(4)}</span></td></tr>${photos}<tr class="item-cost-row"><td>Wood Cost (${item.woodType})</td><td>₹${fmt(item.woodRate)}/CFT</td><td>₹${fmt(item._woodPerPc||0)}</td><td>×${item.qty}</td><td></td><td>₹${fmt(item._woodTotal||0)}</td></tr><tr class="item-cost-row" style="border-bottom:2px solid #e2d9c8;"><td>Lathe Work</td><td>₹${fmt(item.latheRate)}/in×in</td><td>₹${fmt(item._lathePerPc||0)}</td><td>×${item.qty}</td><td></td><td>₹${fmt(item._itemTotal||0)}</td></tr>${item.notes?`<tr><td colspan="6" style="padding:3px 8px 8px;font-size:11px;color:#9e8460;border-bottom:1px solid #e2d9c8;">📝 ${item.notes}</td></tr>`:''}`;}).join('');
   const summRows=[['Wood Subtotal','₹'+fmt(q.subtotalWood||0)],['Lathe Subtotal','₹'+fmt(q.subtotalLathe||0)],['Subtotal','₹'+fmt(q.subtotal||0)],...(q.discountAmount>0?[[`Discount${q.discountType==='pct'?` (${q.discountVal}%)`:''}`,`−₹${fmt(q.discountAmount)}`]]:[])];
   return `<div class="preview-letterhead"><div class="preview-lh-left"><div class="preview-lh-name">AMAR FURNITURE</div><div class="preview-lh-sub">LathePro Quotation · Nashik, Maharashtra</div></div><div class="preview-lh-right"><div class="preview-lh-qno">${q.quoteNo}</div><div class="preview-lh-date">${formatDate(q.date)}</div>${q.deliveryDate?`<div class="preview-lh-date">Delivery: ${formatDate(q.deliveryDate)}</div>`:''}</div></div><div class="preview-customer-bar"><div><div class="preview-cust-label">Bill To</div><div class="preview-cust-name">${q.customerName}</div>${q.address?`<div class="preview-cust-meta">${q.address}</div>`:''}</div>${q.phone?`<div style="font-size:13px;color:#6b5535;">📞 ${q.phone}</div>`:''}</div><div class="preview-items"><table class="preview-tbl"><thead><tr><th>Description</th><th>Rate</th><th>Per Pc</th><th>Qty</th><th></th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table></div><div class="preview-totals"><div class="preview-totals-box">${summRows.map(r=>`<div class="preview-totals-row"><span class="lbl">${r[0]}</span><span class="val">${r[1]}</span></div>`).join('')}<div class="preview-grand-row"><span class="lbl">Grand Total</span><span class="val">₹${fmt(q.grandTotal||0)}</span></div></div></div><div class="preview-terms"><strong style="color:#6b5535;">Terms &amp; Conditions</strong><br>${(q.terms||'').replace(/\n/g,'<br>')}</div>`;
 }
@@ -570,7 +571,7 @@ function buildQuotePreviewHTML(q){
 function buildJobPreviewHTML(q){
   const rows=(q.items||[]).map((item,idx)=>{
     const photos=item.photos&&item.photos.length?`<tr class="item-photo-row"><td colspan="4"><span style="font-size:10px;color:#9e8460;display:block;margin-bottom:4px;">Reference Photos:</span><div class="preview-photo-strip">${item.photos.slice(0,4).map(p=>`<img src="${p}">`).join('')}</div></td></tr>`:'';
-    return `<tr class="item-header-row"><td colspan="4"><span style="font-size:10px;color:#9a6e2e;margin-right:8px;">ITEM ${String(idx+1).padStart(2,'0')}</span>${item.name||'Unnamed'} · ${item.woodType}<span style="float:right;font-weight:600;">${item.qty} pcs</span></td></tr>${photos}<tr class="item-info-row"><td><strong>Dimensions</strong><br>${item.length}ft×${item.width}"×${item.thickness}"</td><td><strong>CFT/pc</strong><br>${(item._cft||0).toFixed(4)}</td><td><strong>Qty</strong><br>${item.qty} pcs</td><td>${item.notes?`<strong style="color:#c0392b;">⚠ Note</strong><br>${item.notes}`:''}</td></tr>`;}).join('');
+    return `<tr class="item-header-row"><td colspan="4"><span style="font-size:10px;color:#9a6e2e;margin-right:8px;">ITEM ${String(idx+1).padStart(2,'0')}</span>${item.name||'Unnamed'} · ${item.woodType}<span style="float:right;font-weight:600;">${item.qty} pcs</span></td></tr>${photos}<tr class="item-info-row"><td><strong>Dimensions</strong><br>${item.length}"×${item.width}"×${item.thickness}"</td><td><strong>CFT/pc</strong><br>${(item._cft||0).toFixed(4)}</td><td><strong>Qty</strong><br>${item.qty} pcs</td><td>${item.notes?`<strong style="color:#c0392b;">⚠ Note</strong><br>${item.notes}`:''}</td></tr>`;}).join('');
   return `<div class="preview-letterhead"><div class="preview-lh-left"><div class="preview-lh-name">AMAR FURNITURE</div><div class="preview-lh-sub">Lathe Work — Job Sheet · Nashik, Maharashtra</div></div><div class="preview-lh-right"><div class="preview-lh-qno">${q.quoteNo} / JOB</div><div class="preview-lh-date">${formatDate(q.date)}</div>${q.deliveryDate?`<div style="color:#f0c060;font-size:12px;margin-top:2px;">⏰ Deadline: ${formatDate(q.deliveryDate)}</div>`:''}</div></div><div class="preview-customer-bar"><div><div class="preview-cust-label">Customer</div><div class="preview-cust-name">${q.customerName}</div></div>${q.phone?`<div style="font-size:13px;color:#6b5535;">📞 ${q.phone}</div>`:''}</div><div class="preview-items"><table class="preview-tbl"><thead><tr><th>Dimensions</th><th>CFT</th><th>Qty</th><th>Instructions</th></tr></thead><tbody>${rows}</tbody></table></div><div style="padding:16px 28px 20px;display:flex;justify-content:space-between;"><div style="border-top:1px solid #ccc;width:38%;padding-top:8px;font-size:11px;color:#9e8460;text-align:center;">Supervisor Signature</div><div style="border-top:1px solid #ccc;width:38%;padding-top:8px;font-size:11px;color:#9e8460;text-align:center;">Worker Signature</div></div>`;
 }
 
@@ -619,7 +620,7 @@ async function generateQuotePDF(){
       // Data columns
       const mY=y+(hasP?pH/2+3:6.5);
       pdf.setTextColor(42,31,14);pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);
-      pdf.text(`${item.length}x${item.width}"x${item.thickness}"`,cols[1]+1,mY);
+      pdf.text(`${item.length}"x${item.width}"x${item.thickness}"`,cols[1]+1,mY);
       pdf.text((item._cft||0).toFixed(3),cols[2]+1,mY);
       pdf.text(String(item.qty)+'pcs',cols[3]+1,mY);
       pdf.text(pdfFmt(item._woodTotal||0),cols[4]+1,mY);
@@ -672,7 +673,7 @@ async function generateJobSheet(){
       pdf.text('QTY: '+item.qty+'pcs',W-M-2,y+4.8,{align:'right'});
       y+=9;
       if(hasP){const pS=22,maxP=Math.min(item.photos.length,4);for(let pi=0;pi<maxP;pi++){try{pdf.addImage(item.photos[pi],'JPEG',M+pi*(pS+3),y,pS,pS);}catch{}}y+=pS+4;}
-      const cW=(W-M*2)/2;[{l:'Dimensions',v:item.length+'ft x '+item.width+'" x '+item.thickness+'"'},{l:'Wood Type',v:item.woodType},{l:'CFT/piece',v:(item._cft||0).toFixed(4)},{l:'Quantity',v:item.qty+' pieces'}].forEach((s,si)=>{const cx=M+(si%2)*cW,ry=y+Math.floor(si/2)*7;pdf.setFillColor(si%4<2?250:244,si%4<2?248:242,si%4<2?240:232);pdf.rect(cx,ry,cW,7,'F');pdf.setTextColor(120,100,60);pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.text(s.l+':',cx+2,ry+4.5);pdf.setTextColor(42,31,14);pdf.setFont('helvetica','bold');pdf.text(s.v,cx+cW/2,ry+4.5);});y+=14+3;
+      const cW=(W-M*2)/2;[{l:'Dimensions',v:item.length+'" x '+item.width+'" x '+item.thickness+'"'},{l:'Wood Type',v:item.woodType},{l:'CFT/piece',v:(item._cft||0).toFixed(4)},{l:'Quantity',v:item.qty+' pieces'}].forEach((s,si)=>{const cx=M+(si%2)*cW,ry=y+Math.floor(si/2)*7;pdf.setFillColor(si%4<2?250:244,si%4<2?248:242,si%4<2?240:232);pdf.rect(cx,ry,cW,7,'F');pdf.setTextColor(120,100,60);pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.text(s.l+':',cx+2,ry+4.5);pdf.setTextColor(42,31,14);pdf.setFont('helvetica','bold');pdf.text(s.v,cx+cW/2,ry+4.5);});y+=14+3;
       if(item.notes){pdf.setFillColor(255,248,220);pdf.rect(M,y,W-M*2,7,'F');pdf.setTextColor(140,100,20);pdf.setFont('helvetica','bold');pdf.setFontSize(7);pdf.text('Special Instructions: ',M+2,y+3.5);pdf.setFont('helvetica','normal');pdf.text(item.notes,M+42,y+3.5);y+=9;}
       y+=3;
     }
@@ -685,7 +686,7 @@ async function generateJobSheet(){
 }
 
 // WHATSAPP
-function shareWhatsApp(){const q=currentQuote;if(!q)return;const msg=`*LathePro Quote — Amar Furniture*\n━━━━━━━━━━━━━━━━\n*Quote:* ${q.quoteNo}\n*Customer:* ${q.customerName}\n*Date:* ${formatDate(q.date)}${q.deliveryDate?'\n*Delivery:* '+formatDate(q.deliveryDate):''}\n\n${(q.items||[]).map((it,i)=>`*Item ${i+1}: ${it.name||'Item'}*\n  • ${it.woodType} · ${it.length}ft×${it.width}"×${it.thickness}" × ${it.qty}pcs\n  • Wood: ₹${fmt(it._woodTotal||0)} | Lathe: ₹${fmt(it._latheTotal||0)}`).join('\n')}\n\n━━━━━━━━━━━━━━━━\n*Wood Total:* ₹${fmt(q.subtotalWood||0)}\n*Lathe Total:* ₹${fmt(q.subtotalLathe||0)}\n${q.discountAmount>0?`*Discount:* −₹${fmt(q.discountAmount)}\n`:''  }*Grand Total: ₹${fmt(q.grandTotal||0)}*\n\nGST will be charged extra as applicable.\n_Amar Furniture, Nashik_`;window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');}
+function shareWhatsApp(){const q=currentQuote;if(!q)return;const msg=`*LathePro Quote — Amar Furniture*\n━━━━━━━━━━━━━━━━\n*Quote:* ${q.quoteNo}\n*Customer:* ${q.customerName}\n*Date:* ${formatDate(q.date)}${q.deliveryDate?'\n*Delivery:* '+formatDate(q.deliveryDate):''}\n\n${(q.items||[]).map((it,i)=>`*Item ${i+1}: ${it.name||'Item'}*\n  • ${it.woodType} · ${it.length}"×${it.width}"×${it.thickness}" × ${it.qty}pcs\n  • Wood: ₹${fmt(it._woodTotal||0)} | Lathe: ₹${fmt(it._latheTotal||0)}`).join('\n')}\n\n━━━━━━━━━━━━━━━━\n*Wood Total:* ₹${fmt(q.subtotalWood||0)}\n*Lathe Total:* ₹${fmt(q.subtotalLathe||0)}\n${q.discountAmount>0?`*Discount:* −₹${fmt(q.discountAmount)}\n`:''  }*Grand Total: ₹${fmt(q.grandTotal||0)}*\n\nGST will be charged extra as applicable.\n_Amar Furniture, Nashik_`;window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');}
 
 // UTILS
 function fmt(n){return Number(n).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:2});}
