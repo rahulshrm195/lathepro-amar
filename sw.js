@@ -1,10 +1,10 @@
 // ══════════════════════════════════════════════════
 //   LathePro Service Worker
 //   Amar Furniture — AppCentrik
-//   Version: 1.0.9
+//   Version: 1.0.10
 // ══════════════════════════════════════════════════
 
-const APP_VERSION = '1.0.9';
+const APP_VERSION = '1.0.10';
 const CACHE_NAME = 'lathepro-v' + APP_VERSION;
 
 const STATIC_ASSETS = [
