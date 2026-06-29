@@ -221,10 +221,32 @@ textarea{resize:vertical;min-height:60px;}
 
 @media(max-width:600px){
   .form-row{grid-template-columns:1fr;} .form-row.three{grid-template-columns:1fr 1fr;}
-  .item-row2{grid-template-columns:1fr 1fr 1fr;}
+  .item-row1{grid-template-columns:1fr;}
+  .item-row2{grid-template-columns:1fr 1fr;}
   .view-table-header,.view-row-top{grid-template-columns:24px 1fr 70px 40px 70px;}
   .builder-actions{flex-direction:column;} .pin-card{width:calc(100% - 40px);}
   .preview-letterhead,.preview-customer-bar,.preview-items,.preview-totals,.preview-terms{padding-left:16px;padding-right:16px;}
+  .quote-card{flex-direction:column;align-items:flex-start;gap:6px;}
+  .quote-card-right{text-align:left;width:100%;display:flex;justify-content:space-between;align-items:baseline;}
+  .quote-card-items{text-align:left;}
+  .calc-bar{gap:6px 10px;}
+  .calc-chip{font-size:11px;}
+  .header-actions{gap:6px;}
+  .btn{padding:7px 12px;font-size:12.5px;}
+  .app-header{padding:0 12px;}
+  .list-body,.builder-body,.view-body{padding:12px;}
+  .section-card,.totals-card{padding:14px;}
+  .photo-thumb,.photo-add-btn{width:56px;height:56px;}
+}
+@media(max-width:420px){
+  .item-row2{grid-template-columns:1fr;}
+  .header-logo{font-size:16px;}
+  .version-tag{display:none;}
+  .view-actions{flex-wrap:wrap;gap:6px;}
+  .modal-overlay{padding:0;}
+  .preview-modal{border-radius:0;min-height:100vh;}
+  .preview-modal-header{flex-wrap:wrap;gap:8px;padding:12px 14px;}
+  .preview-modal-actions{flex-wrap:wrap;width:100%;}
 }
 </style>
 </head>
@@ -262,7 +284,7 @@ textarea{resize:vertical;min-height:60px;}
 <!-- LIST -->
 <div id="list-screen" class="screen">
   <div class="app-header">
-    <div><div class="header-logo">LathePro</div><div class="version-tag">v1.0.10</div></div>
+    <div><div class="header-logo">LathePro</div><div class="version-tag">v1.0.11</div></div>
     <div class="header-actions">
       <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
       <button class="btn btn-outline btn-icon" onclick="lockApp()">🔒</button>
@@ -282,7 +304,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;">LathePro</div><div class="version-tag">v1.0.10</div></div>
+      <div><div class="header-logo" style="font-size:17px;">LathePro</div><div class="version-tag">v1.0.11</div></div>
     </div>
     <div class="header-actions">
       <div class="autosave-indicator" id="autosave-indicator"><div class="autosave-dot"></div><span id="autosave-text">draft</span></div>
@@ -304,8 +326,8 @@ textarea{resize:vertical;min-height:60px;}
       <div class="section-card">
         <div class="section-title">Customer Details</div>
         <div class="form-row">
-          <div class="form-group"><label>Customer Name *</label><input type="text" id="cust-name" placeholder="e.g. Rajesh Sharma"></div>
-          <div class="form-group"><label>Phone</label><input type="tel" id="cust-phone" placeholder="+91 00000 00000"></div>
+          <div class="form-group"><label>Customer Name *</label><input type="text" id="cust-name" list="customer-names-list" placeholder="e.g. Rajesh Sharma" oninput="onCustomerNameInput(this.value)" autocomplete="off"><datalist id="customer-names-list"></datalist></div>
+          <div class="form-group"><label>Phone</label><input type="tel" id="cust-phone" list="customer-phones-list" placeholder="+91 00000 00000" oninput="onCustomerPhoneInput(this.value)" autocomplete="off"><datalist id="customer-phones-list"></datalist></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label>Date</label><input type="date" id="quote-date"></div>
@@ -359,7 +381,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;">LathePro</div><div class="version-tag">v1.0.10</div></div>
+      <div><div class="header-logo" style="font-size:17px;">LathePro</div><div class="version-tag">v1.0.11</div></div>
     </div>
     <div class="view-actions">
       <button class="btn btn-outline btn-sm" onclick="editCurrentQuote()">✏️ Edit</button>
@@ -400,10 +422,10 @@ textarea{resize:vertical;min-height:60px;}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getFirestore,collection,addDoc,getDocs,doc,updateDoc,deleteDoc,query,orderBy,getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getFirestore,collection,addDoc,getDocs,doc,updateDoc,deleteDoc,query,orderBy,getDoc,setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const firebaseConfig={apiKey:"AIzaSyARVv1P0ssuKzfpS1M59AB-rG3riIWh-2c",authDomain:"amar-furniture-e4782.firebaseapp.com",projectId:"amar-furniture-e4782",storageBucket:"amar-furniture-e4782.firebasestorage.app",messagingSenderId:"1084205045390",appId:"1:1084205045390:web:e3c782b318e872629c5bdf"};
-const APP_VERSION='1.0.10',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
+const APP_VERSION='1.0.11',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
 const PIN="1234",WOOD_TYPES=["Teak","Khair","Sagwan","Mango","Sheesham","Other"];
 const DEFAULT_WOOD_RATE=5500,DEFAULT_LATHE_RATE=100;
 const app=initializeApp(firebaseConfig),db=getFirestore(app);
@@ -420,7 +442,7 @@ let currentQuote=null,editingQuoteId=null,items=[],discountType='flat',quotesCac
 let pinEntry='';
 function pinKey(d){if(pinEntry.length>=4)return;pinEntry+=d;updateDots();if(pinEntry.length===4)setTimeout(pinSubmit,150);}
 function pinDel(){pinEntry=pinEntry.slice(0,-1);updateDots();document.getElementById('pin-error').textContent='';}
-function pinSubmit(){if(pinEntry===PIN){showScreen('list');loadQuotes();}else{document.getElementById('pin-error').textContent='Incorrect PIN. Try again.';pinEntry='';updateDots();}}
+function pinSubmit(){if(pinEntry===PIN){showScreen('list');loadQuotes();loadCustomers();}else{document.getElementById('pin-error').textContent='Incorrect PIN. Try again.';pinEntry='';updateDots();}}
 function updateDots(){for(let i=0;i<4;i++)document.getElementById('d'+i).classList.toggle('filled',i<pinEntry.length);}
 function lockApp(){pinEntry='';updateDots();document.getElementById('pin-error').textContent='';showScreen('pin');}
 document.addEventListener('keydown',e=>{if(!document.getElementById('pin-screen').classList.contains('active'))return;if(e.key>='0'&&e.key<='9')pinKey(e.key);else if(e.key==='Backspace'||e.key==='Delete')pinDel();else if(e.key==='Enter')pinSubmit();});
@@ -431,6 +453,50 @@ function goList(){if(document.getElementById('builder-screen').classList.contain
 
 // LIST
 async function loadQuotes(){showLoading(true);try{const q=query(collection(db,'lathepro_quotes'),orderBy('createdAt','desc'));const snap=await getDocs(q);quotesCache=snap.docs.map(d=>({id:d.id,...d.data()}));renderList();}catch(e){toast('Error loading quotes');}showLoading(false);}
+
+// ── CUSTOMERS (reuse / autocomplete) ──
+let customersCache=[];
+async function loadCustomers(){
+  try{
+    const snap=await getDocs(collection(db,'lathepro_customers'));
+    customersCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+    refreshCustomerDatalists();
+  }catch(e){console.warn('Could not load customers',e);}
+}
+function refreshCustomerDatalists(){
+  const nameList=document.getElementById('customer-names-list');
+  const phoneList=document.getElementById('customer-phones-list');
+  if(nameList)nameList.innerHTML=customersCache.map(c=>`<option value="${(c.name||'').replace(/"/g,'&quot;')}">`).join('');
+  if(phoneList)phoneList.innerHTML=customersCache.map(c=>`<option value="${(c.phone||'').replace(/"/g,'&quot;')}">`).join('');
+}
+function onCustomerNameInput(val){
+  const match=customersCache.find(c=>(c.name||'').toLowerCase()===val.trim().toLowerCase());
+  if(match)fillCustomerFields(match);
+}
+function onCustomerPhoneInput(val){
+  const match=customersCache.find(c=>(c.phone||'').trim()===val.trim());
+  if(match)fillCustomerFields(match);
+}
+function fillCustomerFields(c){
+  document.getElementById('cust-name').value=c.name||'';
+  document.getElementById('cust-phone').value=c.phone||'';
+  if(c.address)document.getElementById('cust-address').value=c.address;
+  triggerAutoSave&&triggerAutoSave();
+}
+async function upsertCustomer(name,phone,address){
+  if(!name)return;
+  // Use phone as the doc id when present (most reliable unique key), else fallback to slugified name
+  const id=phone&&phone.trim()?phone.trim().replace(/[^0-9+]/g,''):name.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-');
+  if(!id)return;
+  try{
+    await setDoc(doc(db,'lathepro_customers',id),{name:name.trim(),phone:(phone||'').trim(),address:(address||'').trim(),updatedAt:new Date().toISOString()},{merge:true});
+    // refresh local cache so autocomplete is current without a full reload
+    const idx=customersCache.findIndex(c=>c.id===id);
+    const rec={id,name:name.trim(),phone:(phone||'').trim(),address:(address||'').trim()};
+    if(idx>=0)customersCache[idx]=rec;else customersCache.push(rec);
+    refreshCustomerDatalists();
+  }catch(e){console.warn('Could not save customer',e);}
+}
 function renderList(){const el=document.getElementById('quotes-list'),cnt=document.getElementById('quotes-count');cnt.textContent=quotesCache.length+' quote'+(quotesCache.length!==1?'s':'');if(!quotesCache.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🪵</div><div class="empty-title">No quotes yet</div><div>Create your first lathe work quote</div></div>`;return;}el.innerHTML=quotesCache.map(q=>`<div class="quote-card" onclick="openQuote('${q.id}')"><div><div class="quote-card-num">${q.quoteNo}</div><div class="quote-card-name">${q.customerName}</div><div class="quote-card-date">${formatDate(q.date)}</div></div><div><div class="quote-card-amount">₹${fmt(q.grandTotal||0)}</div><div class="quote-card-items">${(q.items||[]).length} item${(q.items||[]).length!==1?'s':''}</div></div></div>`).join('');}
 
 // BUILDER
@@ -549,7 +615,9 @@ async function saveQuote(){
     items:items.map(it=>({id:it.id,name:it.name,woodType:it.woodType,length:it.length,width:it.width,thickness:it.thickness,qty:it.qty,woodRate:it.woodRate,latheRate:it.latheRate,notes:it.notes,internalNotes:it.internalNotes||'',photos:it.photos,_cft:it._cft||0,_woodPerPc:it._woodPerPc||0,_lathePerPc:it._lathePerPc||0,_woodTotal:it._woodTotal||0,_latheTotal:it._latheTotal||0,_itemTotal:it._itemTotal||0})),
     createdAt:editingQuoteId?undefined:new Date().toISOString(),updatedAt:new Date().toISOString()};
   showLoading(true);
-  try{if(editingQuoteId){await updateDoc(doc(db,'lathepro_quotes',editingQuoteId),quoteData);currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote updated ✓');}else{quoteData.quoteNo=window._pendingQuoteNo;const ref=await addDoc(collection(db,'lathepro_quotes'),quoteData);editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote saved ✓');}}catch(e){toast('Error saving: '+e.message);}showLoading(false);
+  try{if(editingQuoteId){await updateDoc(doc(db,'lathepro_quotes',editingQuoteId),quoteData);currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote updated ✓');}else{quoteData.quoteNo=window._pendingQuoteNo;const ref=await addDoc(collection(db,'lathepro_quotes'),quoteData);editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote saved ✓');}
+    upsertCustomer(quoteData.customerName,quoteData.phone,quoteData.address); // fire-and-forget, doesn't block save
+  }catch(e){toast('Error saving: '+e.message);}showLoading(false);
 }
 
 // VIEW
@@ -758,6 +826,16 @@ function setAutosaveStatus(status){const el=document.getElementById('autosave-in
 document.getElementById('quote-date').value=todayStr();
 document.getElementById('builder-screen').addEventListener('input',triggerAutoSave);
 document.getElementById('builder-screen').addEventListener('change',triggerAutoSave);
+
+// Expose functions used by inline onclick/oninput/onchange HTML attributes —
+// required because this is a module script (module scope ≠ global scope)
+Object.assign(window,{
+  addItem,addPhotos,closePreview,deleteCurrentQuote,discardDraft,dismissInstall,
+  downloadCurrentPreview,editCurrentQuote,goList,installApp,lockApp,newQuote,
+  onCustomerNameInput,onCustomerPhoneInput,openQuote,pinDel,pinKey,pinSubmit,
+  recalcTotals,removeItem,removePhoto,restoreDraft,saveQuote,setDiscType,
+  shareWhatsApp,showPreview,updateItem
+});
 </script>
 </body>
 </html>
