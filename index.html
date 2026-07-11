@@ -367,7 +367,7 @@ textarea{resize:vertical;min-height:60px;}
         <div class="section-card">
           <div class="section-title">Terms & Conditions</div>
           <textarea id="terms-text" style="min-height:80px;">1. GST will be charged extra as applicable.
-2. 50% advance required before work commencement and full payment before dispatch from factory.
+2. 50% advance required before work commencement and 50% payment before dispatch from factory.
 3. Delivery subject to material availability.
 4. Prices valid for 15 days from quote date.</textarea>
         </div>
@@ -519,7 +519,7 @@ function renderList(){const el=document.getElementById('quotes-list'),cnt=docume
 
 // BUILDER
 let itemIdCounter=0;
-function newQuote(){editingQuoteId=null;items=[];discountType='flat';['cust-name','cust-phone','cust-address','discount-val'].forEach(id=>document.getElementById(id).value='');document.getElementById('quote-date').value=todayStr();document.getElementById('delivery-date').value='';document.getElementById('terms-text').value=`1. GST will be charged extra as applicable.\n2. 50% advance required before work commencement.\n3. Delivery subject to material availability.\n4. Prices valid for 15 days from quote date.`;setDiscType('flat');document.getElementById('items-container').innerHTML='';getNextQuoteNo().then(no=>{document.getElementById('builder-quote-num').textContent=no;window._pendingQuoteNo=no;});const draft=checkForDraft();if(draft&&!draft.editingId){document.getElementById('draft-banner').classList.add('show');addItem();}else{document.getElementById('draft-banner').classList.remove('show');addItem();}setAutosaveStatus('idle');showScreen('builder');}
+function newQuote(){editingQuoteId=null;items=[];discountType='flat';['cust-name','cust-phone','cust-address','discount-val'].forEach(id=>document.getElementById(id).value='');document.getElementById('quote-date').value=todayStr();document.getElementById('delivery-date').value='';document.getElementById('terms-text').value=`1. GST will be charged extra as applicable.\n2. 50% advance required before work commencement and 50% payment before dispatch from factory.\n3. Delivery subject to material availability.\n4. Prices valid for 15 days from quote date.`;setDiscType('flat');document.getElementById('items-container').innerHTML='';getNextQuoteNo().then(no=>{document.getElementById('builder-quote-num').textContent=no;window._pendingQuoteNo=no;});const draft=checkForDraft();if(draft&&!draft.editingId){document.getElementById('draft-banner').classList.add('show');addItem();}else{document.getElementById('draft-banner').classList.remove('show');addItem();}setAutosaveStatus('idle');showScreen('builder');}
 async function getNextQuoteNo(){try{const q=query(collection(db,'lathepro_quotes'),orderBy('quoteNo','desc'));const snap=await getDocs(q);if(snap.empty)return'LP-001';const last=snap.docs[0].data().quoteNo||'LP-000';return'LP-'+String(parseInt(last.replace('LP-',''))+1).padStart(3,'0');}catch{return'LP-'+Date.now().toString().slice(-4);}}
 
 function addItem(){const id=++itemIdCounter;items.push({id,name:'',woodType:'Teak',length:'',width:'',thickness:'',qty:1,woodRate:DEFAULT_WOOD_RATE,latheRate:DEFAULT_LATHE_RATE,notes:'',internalNotes:'',photos:[]});renderItems();}
