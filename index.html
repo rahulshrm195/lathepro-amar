@@ -205,13 +205,14 @@ textarea{resize:vertical;min-height:60px;}
 .preview-photo-strip img{width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #e2d9c8;}
 .preview-photo-strip.job-sheet{display:flex;gap:10px;flex-wrap:wrap;}
 .preview-photo-strip.job-sheet img{width:200px;height:300px;border-radius:10px;object-fit:contain;background:#f5f0e8;border:1px solid #e2d9c8;}
-.preview-totals{padding:0 28px 20px;display:flex;justify-content:flex-end;}
-.preview-totals-box{width:260px;border:1px solid #e2d9c8;border-radius:8px;overflow:hidden;}
-.preview-totals-row{display:flex;justify-content:space-between;padding:6px 12px;font-size:12px;border-bottom:1px solid #f0ebe0;background:#fdf8ef;}
-.preview-totals-row .lbl{color:#6b5535;} .preview-totals-row .val{font-family:'DM Mono',monospace;color:#2a1f0e;}
-.preview-grand-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#1a1209;}
-.preview-grand-row .lbl{font-family:'Playfair Display',serif;font-size:14px;color:#c9a84c;}
-.preview-grand-row .val{font-family:'DM Mono',monospace;font-size:17px;color:#e2c068;font-weight:600;}
+.preview-totals{padding:0;}
+.preview-summary-strip{background:#1a1209;padding:12px 28px;display:flex;justify-content:space-between;align-items:center;}
+.preview-summary-cols{display:flex;gap:28px;}
+.preview-summary-item .ps-label{font-size:9px;color:#6a5030;text-transform:uppercase;letter-spacing:.5px;font-family:'DM Sans',sans-serif;}
+.preview-summary-item .ps-val{font-size:12px;color:#c9a84c;font-weight:600;font-family:'DM Mono',monospace;margin-top:2px;}
+.preview-grand-block{text-align:right;}
+.preview-grand-block .ps-label{font-size:9px;color:#6a5030;text-transform:uppercase;letter-spacing:.5px;font-family:'DM Sans',sans-serif;}
+.preview-grand-block .ps-grand{font-size:20px;color:#e2c068;font-weight:700;font-family:'DM Mono',monospace;margin-top:2px;}
 .preview-terms{padding:12px 28px 20px;font-size:11px;color:#9e8460;line-height:1.7;border-top:1px solid #e8dcc8;}
 
 /* INSTALL / OFFLINE / LOADING / TOAST */
@@ -284,7 +285,7 @@ textarea{resize:vertical;min-height:60px;}
 <!-- LIST -->
 <div id="list-screen" class="screen">
   <div class="app-header">
-    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.25</div></div>
+    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.26</div></div>
     <div class="header-actions">
       <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
       <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
@@ -304,7 +305,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.25</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.26</div></div>
     </div>
     <div class="header-actions">
       <div class="autosave-indicator" id="autosave-indicator"><div class="autosave-dot"></div><span id="autosave-text">draft</span></div>
@@ -382,7 +383,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.25</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.26</div></div>
     </div>
     <div class="view-actions">
       <button class="btn btn-outline btn-sm" onclick="editCurrentQuote()">✏️ Edit</button>
@@ -432,7 +433,7 @@ const firebaseConfig={apiKey:"AIzaSyARVv1P0ssuKzfpS1M59AB-rG3riIWh-2c",authDomai
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore(),auth=firebase.auth(),storage=firebase.storage();
 
-const APP_VERSION='1.0.25',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
+const APP_VERSION='1.0.26',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
 const WOOD_TYPES=["Teak","Khair","Sagwan","Mango","Sheesham","Other"];
 const DEFAULT_WOOD_RATE=5500,DEFAULT_LATHE_RATE=100;
 const ALLOWED_EMAIL='rahulshrm195@gmail.com';
@@ -735,7 +736,7 @@ function buildQuotePreviewHTML(q){
     const photos=item.photos&&item.photos.length?`<tr class="item-photo-row"><td colspan="6"><div class="preview-photo-strip">${item.photos.slice(0,5).map(p=>`<img src="${p}" crossorigin="anonymous" referrerpolicy="no-referrer" loading="eager" onerror="this.style.display='none'">`).join('')}</div></td></tr>`:'';
     return `<tr class="item-header-row"><td colspan="6"><span style="font-size:10px;color:#9a6e2e;margin-right:8px;">ITEM ${String(idx+1).padStart(2,'0')}</span>${item.name||'—'}<span style="font-size:11px;color:#9e8460;margin-left:8px;">· ${item.woodType} · ${item.length}"×${item.width}"×${item.thickness}" · ${item.qty}pcs · CFT:${(item._cft||0).toFixed(4)}</span></td></tr>${photos}<tr class="item-cost-row"><td>Wood Cost (${item.woodType})</td><td>₹${fmt(item.woodRate)}/CFT</td><td>₹${fmt(item._woodPerPc||0)}</td><td>×${item.qty}</td><td></td><td>₹${fmt(item._woodTotal||0)}</td></tr><tr class="item-cost-row" style="border-bottom:2px solid #e2d9c8;"><td>Lathe Work</td><td>₹${fmt(item.latheRate)}/ft×in</td><td>₹${fmt(item._lathePerPc||0)}</td><td>×${item.qty}</td><td></td><td>₹${fmt(item._itemTotal||0)}</td></tr>${item.notes?`<tr><td colspan="6" style="padding:3px 8px 8px;font-size:11px;color:#9e8460;border-bottom:1px solid #e2d9c8;">📝 ${item.notes}</td></tr>`:''}`;}).join('');
   const summRows=[['Wood Subtotal','₹'+fmt(q.subtotalWood||0)],['Lathe Subtotal','₹'+fmt(q.subtotalLathe||0)],['Subtotal','₹'+fmt(q.subtotal||0)],...(q.discountAmount>0?[[`Discount${q.discountType==='pct'?` (${q.discountVal}%)`:''}`,`−₹${fmt(q.discountAmount)}`]]:[])];
-  return `<div class="preview-letterhead"><div class="preview-lh-left"><div class="preview-lh-name">AMAR FURNITURE</div><div class="preview-lh-sub">LathePro Quotation · Nashik, Maharashtra</div></div><div class="preview-lh-right"><div class="preview-lh-qno">${q.quoteNo}</div><div class="preview-lh-date">${formatDate(q.date)}</div>${q.deliveryDate?`<div class="preview-lh-date">Delivery: ${formatDate(q.deliveryDate)}</div>`:''}</div></div><div class="preview-customer-bar"><div><div class="preview-cust-label">Bill To</div><div class="preview-cust-name">${q.customerName}</div>${q.address?`<div class="preview-cust-meta">${q.address}</div>`:''}</div>${q.phone?`<div style="font-size:13px;color:#6b5535;">📞 ${q.phone}</div>`:''}</div><div class="preview-items"><table class="preview-tbl"><thead><tr><th>Description</th><th>Rate</th><th>Per Pc</th><th>Qty</th><th></th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table></div><div class="preview-totals"><div class="preview-totals-box">${summRows.map(r=>`<div class="preview-totals-row"><span class="lbl">${r[0]}</span><span class="val">${r[1]}</span></div>`).join('')}<div class="preview-grand-row"><span class="lbl">Grand Total</span><span class="val">₹${fmt(q.grandTotal||0)}</span></div></div></div><div class="preview-terms"><strong style="color:#6b5535;">Terms &amp; Conditions</strong><br>${(q.terms||'').replace(/\n/g,'<br>')}</div>`;
+  return `<div class="preview-letterhead"><div class="preview-lh-left"><div class="preview-lh-name">AMAR FURNITURE</div><div class="preview-lh-sub">LathePro Quotation · Nashik, Maharashtra</div></div><div class="preview-lh-right"><div class="preview-lh-qno">${q.quoteNo}</div><div class="preview-lh-date">${formatDate(q.date)}</div>${q.deliveryDate?`<div class="preview-lh-date">Delivery: ${formatDate(q.deliveryDate)}</div>`:''}</div></div><div class="preview-customer-bar"><div><div class="preview-cust-label">Bill To</div><div class="preview-cust-name">${q.customerName}</div>${q.address?`<div class="preview-cust-meta">${q.address}</div>`:''}</div>${q.phone?`<div style="font-size:13px;color:#6b5535;">📞 ${q.phone}</div>`:''}</div><div class="preview-items"><table class="preview-tbl"><thead><tr><th>Description</th><th>Rate</th><th>Per Pc</th><th>Qty</th><th></th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table></div><div class="preview-totals"><div class="preview-summary-strip"><div class="preview-summary-cols"><div class="preview-summary-item"><div class="ps-label">Wood Total</div><div class="ps-val">₹${fmt(q.subtotalWood||0)}</div></div><div class="preview-summary-item"><div class="ps-label">Lathe Total</div><div class="ps-val">₹${fmt(q.subtotalLathe||0)}</div></div><div class="preview-summary-item"><div class="ps-label">Subtotal</div><div class="ps-val">₹${fmt(q.subtotal||0)}</div></div>${q.discountAmount>0?`<div class="preview-summary-item"><div class="ps-label">Discount</div><div class="ps-val" style="color:#e07060;">−₹${fmt(q.discountAmount)}</div></div>`:''}</div><div class="preview-grand-block"><div class="ps-label">Grand Total</div><div class="ps-grand">₹${fmt(q.grandTotal||0)}</div></div></div></div><div class="preview-terms"><strong style="color:#6b5535;">Terms &amp; Conditions</strong><br>${(q.terms||'').replace(/\n/g,'<br>')}</div>`;
 }
 
 function buildJobPreviewHTML(q){
@@ -801,13 +802,31 @@ async function generateQuotePDF(){
       if(item.notes){pdf.setFont('helvetica','italic');pdf.setFontSize(6.5);pdf.setTextColor(140,110,70);pdf.text('Note: '+item.notes,tx,y+rH-2);}
       y+=rH+1;
     }
-    // Totals box
-    if(y+34>272){pdf.addPage();y=14;}y+=4;
-    const tw=76,tx2=W-M-tw;
-    [['Wood Subtotal',pdfFmt(quote.subtotalWood||0)],['Lathe Subtotal',pdfFmt(quote.subtotalLathe||0)],['Subtotal',pdfFmt(quote.subtotal||0)],...(quote.discountAmount>0?[['Discount','-'+pdfFmt(quote.discountAmount)]]:[])]
-      .forEach((r)=>{pdf.setFillColor(253,248,239);pdf.rect(tx2,y,tw,5.5,'F');pdf.setDrawColor(226,217,200);pdf.line(tx2,y+5.5,tx2+tw,y+5.5);pdf.setTextColor(100,80,40);pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.text(r[0],tx2+2,y+3.8);pdf.text(r[1],tx2+tw-2,y+3.8,{align:'right'});y+=5.5;});
-    pdf.setFillColor(26,18,9);pdf.rect(tx2,y,tw,9,'F');pdf.setTextColor(201,168,76);pdf.setFont('helvetica','bold');pdf.setFontSize(10);
-    pdf.text('Grand Total',tx2+2,y+6.2);pdf.text(pdfFmt(quote.grandTotal||0),tx2+tw-2,y+6.2,{align:'right'});y+=13;
+    // ── FULL-WIDTH DARK SUMMARY STRIP (Format A + B combined) ──
+    if(y+18>272){pdf.addPage();y=14;}
+    y+=4;
+    const stripH=14;
+    pdf.setFillColor(26,18,9);pdf.rect(0,y,W,stripH,'F');
+
+    // Left side — Wood / Lathe / Subtotal columns
+    const cols2=[M,M+50,M+100];
+    const labels2=['Wood Total','Lathe Total','Subtotal'];
+    const vals2=[pdfFmt(quote.subtotalWood||0),pdfFmt(quote.subtotalLathe||0),pdfFmt(quote.subtotal||0)];
+    labels2.forEach((lbl,ci)=>{
+      pdf.setTextColor(106,80,48);pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);pdf.text(lbl,cols2[ci],y+5);
+      pdf.setTextColor(201,168,76);pdf.setFont('helvetica','bold');pdf.setFontSize(8.5);pdf.text(vals2[ci],cols2[ci],y+11);
+    });
+
+    // Discount if any
+    if(quote.discountAmount>0){
+      pdf.setTextColor(106,80,48);pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);pdf.text('Discount',cols2[2]+50,y+5);
+      pdf.setTextColor(200,100,80);pdf.setFont('helvetica','bold');pdf.setFontSize(8.5);pdf.text('-'+pdfFmt(quote.discountAmount),cols2[2]+50,y+11);
+    }
+
+    // Right side — Grand Total
+    pdf.setTextColor(106,80,48);pdf.setFont('helvetica','normal');pdf.setFontSize(7);pdf.text('Grand Total',W-M,y+5,{align:'right'});
+    pdf.setTextColor(226,192,104);pdf.setFont('helvetica','bold');pdf.setFontSize(14);pdf.text(pdfFmt(quote.grandTotal||0),W-M,y+12,{align:'right'});
+    y+=stripH+8;
     // Terms
     if(y+22>272){pdf.addPage();y=14;}
     pdf.setTextColor(120,100,60);pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);pdf.text('Terms & Conditions',M,y);y+=5;
