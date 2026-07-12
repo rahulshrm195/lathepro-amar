@@ -419,17 +419,19 @@ textarea{resize:vertical;min-height:60px;}
 <div class="loading-overlay" id="loading"><div class="spinner"></div></div>
 <div class="toast" id="toast"></div>
 
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getFirestore,collection,addDoc,getDocs,doc,updateDoc,deleteDoc,query,orderBy,getDoc,setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-import { getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
+<script>
 const firebaseConfig={apiKey:"AIzaSyARVv1P0ssuKzfpS1M59AB-rG3riIWh-2c",authDomain:"amar-furniture-e4782.firebaseapp.com",projectId:"amar-furniture-e4782",storageBucket:"amar-furniture-e4782.firebasestorage.app",messagingSenderId:"1084205045390",appId:"1:1084205045390:web:e3c782b318e872629c5bdf"};
-const APP_VERSION='1.0.16',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore(),auth=firebase.auth();
+
+const APP_VERSION='1.0.17',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
 const WOOD_TYPES=["Teak","Khair","Sagwan","Mango","Sheesham","Other"];
 const DEFAULT_WOOD_RATE=5500,DEFAULT_LATHE_RATE=100;
 const ALLOWED_EMAIL='rahulshrm195@gmail.com';
-const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
 let currentQuote=null,editingQuoteId=null,items=[],discountType='flat',quotesCache=[],_previewMode='quote';
 
 // ── FIREBASE AUTH ──
@@ -441,9 +443,9 @@ async function doLogin(){
   if(!email||!password){errEl.textContent='Please enter email and password.';return;}
   showLoading(true);
   try{
-    const cred=await signInWithEmailAndPassword(auth,email,password);
+    const cred=await auth.signInWithEmailAndPassword(email,password);
     if(cred.user.email!==ALLOWED_EMAIL){
-      await signOut(auth);
+      await auth.signOut();
       errEl.textContent='Access not authorised for this account.';
     }
   }catch(e){
@@ -454,7 +456,7 @@ async function doLogin(){
 }
 
 async function doLogout(){
-  try{await signOut(auth);}catch(e){}
+  try{await auth.signOut();}catch(e){}
   showScreen('login');
 }
 
@@ -468,13 +470,13 @@ function showScreen(n){document.querySelectorAll('.screen').forEach(s=>s.classLi
 function goList(){if(document.getElementById('builder-screen').classList.contains('active'))saveDraftToLocal();showScreen('list');loadAll();}
 
 // LIST
-async function loadQuotes(){showLoading(true);try{const q=query(collection(db,'lathepro_quotes'),orderBy('createdAt','desc'));const snap=await getDocs(q);quotesCache=snap.docs.map(d=>({id:d.id,...d.data()}));renderList();}catch(e){toast('Error loading quotes');}showLoading(false);}
+async function loadQuotes(){showLoading(true);try{const snap=await db.collection('lathepro_quotes').orderBy('createdAt','desc').get();quotesCache=snap.docs.map(d=>({id:d.id,...d.data()}));renderList();}catch(e){toast('Error loading quotes');}showLoading(false);}
 
 // ── CUSTOMERS (reuse / autocomplete) ──
 let customersCache=[];
 async function loadCustomers(){
   try{
-    const snap=await getDocs(collection(db,'lathepro_customers'));
+    const snap=await db.collection('lathepro_customers').get();
     customersCache=snap.docs.map(d=>({id:d.id,...d.data()}));
   }catch(e){console.warn('Could not load customers',e);}
 }
@@ -518,7 +520,7 @@ async function upsertCustomer(name,phone,address){
   const id=phone&&phone.trim()?phone.trim().replace(/[^0-9+]/g,''):name.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-');
   if(!id)return;
   try{
-    await setDoc(doc(db,'lathepro_customers',id),{name:name.trim(),phone:(phone||'').trim(),address:(address||'').trim(),updatedAt:new Date().toISOString()},{merge:true});
+    await db.collection('lathepro_customers').doc(id).set({name:name.trim(),phone:(phone||'').trim(),address:(address||'').trim(),updatedAt:new Date().toISOString()},{merge:true});
     // refresh local cache so autocomplete is current without a full reload
     const idx=customersCache.findIndex(c=>c.id===id);
     const rec={id,name:name.trim(),phone:(phone||'').trim(),address:(address||'').trim()};
@@ -530,7 +532,7 @@ function renderList(){const el=document.getElementById('quotes-list'),cnt=docume
 // BUILDER
 let itemIdCounter=0;
 function newQuote(){editingQuoteId=null;items=[];discountType='flat';['cust-name','cust-phone','cust-address','discount-val'].forEach(id=>document.getElementById(id).value='');document.getElementById('quote-date').value=todayStr();document.getElementById('delivery-date').value='';document.getElementById('terms-text').value=`1. GST will be charged extra as applicable.\n2. 50% advance required before work commencement.\n3. Balance 50% to be paid before dispatch from factory.\n4. Delivery subject to material availability.\n5. Prices valid for 15 days from quote date.`;setDiscType('flat');document.getElementById('items-container').innerHTML='';getNextQuoteNo().then(no=>{document.getElementById('builder-quote-num').textContent=no;window._pendingQuoteNo=no;});const draft=checkForDraft();if(draft&&!draft.editingId){document.getElementById('draft-banner').classList.add('show');addItem();}else{document.getElementById('draft-banner').classList.remove('show');addItem();}setAutosaveStatus('idle');showScreen('builder');}
-async function getNextQuoteNo(){try{const q=query(collection(db,'lathepro_quotes'),orderBy('quoteNo','desc'));const snap=await getDocs(q);if(snap.empty)return'LP-001';const last=snap.docs[0].data().quoteNo||'LP-000';return'LP-'+String(parseInt(last.replace('LP-',''))+1).padStart(3,'0');}catch{return'LP-'+Date.now().toString().slice(-4);}}
+async function getNextQuoteNo(){try{const snap=await db.collection('lathepro_quotes').orderBy('quoteNo','desc').get();if(snap.empty)return'LP-001';const last=snap.docs[0].data().quoteNo||'LP-000';return'LP-'+String(parseInt(last.replace('LP-',''))+1).padStart(3,'0');}catch{return'LP-'+Date.now().toString().slice(-4);}}
 
 function addItem(){const id=++itemIdCounter;items.push({id,name:'',woodType:'Teak',length:'',width:'',thickness:'',qty:1,woodRate:DEFAULT_WOOD_RATE,latheRate:DEFAULT_LATHE_RATE,notes:'',internalNotes:'',photos:[]});renderItems();}
 function removeItem(id){items=items.filter(i=>i.id!==id);renderItems();recalcTotals();}
@@ -644,13 +646,13 @@ async function saveQuote(){
     updatedAt:new Date().toISOString()};
   if(!editingQuoteId)quoteData.createdAt=new Date().toISOString();
   showLoading(true);
-  try{if(editingQuoteId){await updateDoc(doc(db,'lathepro_quotes',editingQuoteId),quoteData);currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote updated ✓');}else{quoteData.quoteNo=window._pendingQuoteNo;const ref=await addDoc(collection(db,'lathepro_quotes'),quoteData);editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote saved ✓');}
+  try{if(editingQuoteId){await db.collection('lathepro_quotes').doc(editingQuoteId).update(quoteData);currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote updated ✓');}else{quoteData.quoteNo=window._pendingQuoteNo;const ref=await db.collection('lathepro_quotes').add(quoteData);editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote saved ✓');}
     upsertCustomer(quoteData.customerName,quoteData.phone,quoteData.address); // fire-and-forget, doesn't block save
   }catch(e){toast('Error saving: '+e.message);}showLoading(false);
 }
 
 // VIEW
-async function openQuote(id){showLoading(true);try{const snap=await getDoc(doc(db,'lathepro_quotes',id));if(!snap.exists()){toast('Not found');return;}currentQuote={id:snap.id,...snap.data()};renderView(currentQuote);showScreen('view');}catch(e){toast('Error loading quote');}showLoading(false);}
+async function openQuote(id){showLoading(true);try{const snap=await db.collection('lathepro_quotes').doc(id).get();if(!snap.exists){toast('Not found');return;}currentQuote={id:snap.id,...snap.data()};renderView(currentQuote);showScreen('view');}catch(e){toast('Error loading quote');}showLoading(false);}
 
 function renderView(q){
   const el=document.getElementById('view-body');
@@ -662,7 +664,7 @@ function renderView(q){
 }
 
 function editCurrentQuote(){if(!currentQuote)return;editingQuoteId=currentQuote.id;window._pendingQuoteNo=currentQuote.quoteNo;document.getElementById('builder-quote-num').textContent=currentQuote.quoteNo;document.getElementById('cust-name').value=currentQuote.customerName||'';document.getElementById('cust-phone').value=currentQuote.phone||'';document.getElementById('cust-address').value=currentQuote.address||'';document.getElementById('quote-date').value=currentQuote.date||todayStr();document.getElementById('delivery-date').value=currentQuote.deliveryDate||'';document.getElementById('terms-text').value=currentQuote.terms||'';document.getElementById('discount-val').value=currentQuote.discountVal||'';setDiscType(currentQuote.discountType||'flat');itemIdCounter=0;items=(currentQuote.items||[]).map(it=>({...it,id:++itemIdCounter}));renderItems();items.forEach(it=>calcItem(it.id));recalcTotals();showScreen('builder');}
-async function deleteCurrentQuote(){if(!currentQuote)return;if(!confirm(`Delete ${currentQuote.quoteNo}?`))return;showLoading(true);try{await deleteDoc(doc(db,'lathepro_quotes',currentQuote.id));toast('Deleted');currentQuote=null;goList();}catch(e){toast('Error');}showLoading(false);}
+async function deleteCurrentQuote(){if(!currentQuote)return;if(!confirm(`Delete ${currentQuote.quoteNo}?`))return;showLoading(true);try{await db.collection('lathepro_quotes').doc(currentQuote.id).delete();toast('Deleted');currentQuote=null;goList();}catch(e){toast('Error');}showLoading(false);}
 
 // PREVIEW MODAL
 async function showPreview(mode){
@@ -856,26 +858,13 @@ document.getElementById('quote-date').value=todayStr();
 document.getElementById('builder-screen').addEventListener('input',triggerAutoSave);
 document.getElementById('builder-screen').addEventListener('change',triggerAutoSave);
 
-// Expose ALL functions to window immediately — module scope ≠ global scope
-// This must happen before onAuthStateChanged fires (which can be immediate
-// if Firebase has a cached session) and before any onclick handlers fire
-Object.assign(window,{
-  doLogin,doLogout,loadAll,showScreen,goList,
-  newQuote,addItem,removeItem,updateItem,calcItem,recalcTotals,setDiscType,
-  addPhotos,removePhoto,
-  saveQuote,openQuote,editCurrentQuote,deleteCurrentQuote,
-  showPreview,closePreview,downloadCurrentPreview,shareWhatsApp,
-  onCustomerNameInput,onCustomerPhoneInput,hideCustomerDropdown,selectCustomer,
-  restoreDraft,discardDraft,installApp,dismissInstall
-});
-
-// ── AUTH STATE — registered last, after all functions exposed to window ──
-onAuthStateChanged(auth,user=>{
+// ── AUTH STATE ──
+auth.onAuthStateChanged(user=>{
   if(user&&user.email===ALLOWED_EMAIL){
-    window.showScreen('list');
-    window.loadAll();
+    showScreen('list');
+    loadAll();
   } else {
-    window.showScreen('login');
+    showScreen('login');
   }
 });
 </script>
