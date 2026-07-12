@@ -230,34 +230,101 @@ textarea{resize:vertical;min-height:60px;}
 .toast.show{transform:translateX(-50%) translateY(0);}
 
 @media(max-width:600px){
-  .form-row{grid-template-columns:1fr;} .form-row.three{grid-template-columns:1fr 1fr;}
-  .item-row1{grid-template-columns:1fr;}
-  .item-row2{grid-template-columns:1fr 1fr;}
-  .view-table-header,.view-row-top{grid-template-columns:24px 1fr 70px 40px 70px;}
-  .builder-actions{flex-direction:column;}
-  .preview-letterhead,.preview-customer-bar,.preview-items,.preview-totals,.preview-terms{padding-left:16px;padding-right:16px;}
-  .quote-card{flex-direction:column;align-items:flex-start;gap:6px;}
-  .quote-card-right{text-align:left;width:100%;display:flex;justify-content:space-between;align-items:baseline;}
-  .quote-card-items{text-align:left;}
-  .calc-bar{gap:6px 10px;}
-  .calc-chip{font-size:11px;}
+  /* HEADER */
+  .app-header{padding:0 12px;height:52px;}
+  .header-logo{font-size:18px;}
   .header-actions{gap:6px;}
-  .btn{padding:7px 12px;font-size:12.5px;}
-  .app-header{padding:0 12px;}
-  .list-body,.builder-body,.view-body{padding:12px;}
-  .section-card,.totals-card{padding:14px;}
-  .photo-thumb,.photo-add-btn{width:56px;height:56px;}
-}
-@media(max-width:420px){
-  .item-row2{grid-template-columns:1fr;}
-  .header-logo{font-size:16px;}
-  .version-tag{display:none;}
-  .view-actions{flex-wrap:wrap;gap:6px;}
+  .btn{padding:7px 11px;font-size:12px;}
+  .btn-sm{padding:5px 9px;font-size:11.5px;}
+
+  /* LIST */
+  .list-body{padding:12px;}
+  .list-title{font-size:18px;}
+  .quote-card{flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px;}
+  .quote-card-right{width:100%;display:flex;justify-content:space-between;align-items:baseline;}
+  .quote-card-amount{font-size:15px;}
+  .quote-card-items{text-align:left;}
+
+  /* BUILDER */
+  .builder-body{padding:12px;}
+  .form-row{grid-template-columns:1fr;}
+  .form-row.three{grid-template-columns:1fr 1fr;}
+  .item-row1{grid-template-columns:1fr 90px;}
+  .item-row2{grid-template-columns:1fr 1fr;}
+  .item-card-body{padding:10px 12px;}
+  .calc-bar{gap:5px 8px;padding:7px 10px;}
+  .calc-chip{font-size:11px;}
+  .calc-dv{display:none;}
+  .builder-actions{flex-direction:column;}
+  .section-card,.totals-card{padding:14px 12px;}
+  .builder-sidebar-sticky{position:relative;top:auto;}
+
+  /* VIEW SCREEN */
+  .view-body{padding:12px;}
+  /* Collapse 7-col table to essential cols: # | item | qty | total */
+  .view-table-header{grid-template-columns:24px 1fr 40px 72px;gap:4px;padding:7px 10px;}
+  .view-table-header span:nth-child(3),.view-table-header span:nth-child(5),.view-table-header span:nth-child(6){display:none;}
+  .view-row-top{grid-template-columns:24px 1fr 40px 72px;gap:4px;font-size:12px;}
+  .view-row-top>*:nth-child(3),.view-row-top>*:nth-child(5),.view-row-top>*:nth-child(6){display:none;}
+  .view-row-photos img{width:70px;height:70px;}
+  .view-summary-inline{max-width:100%;margin-left:0;}
+
+  /* VIEW ACTIONS — scrollable row */
+  .view-actions{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;padding-bottom:2px;-webkit-overflow-scrolling:touch;}
+  .view-actions::-webkit-scrollbar{display:none;}
+  .view-actions .btn{white-space:nowrap;flex-shrink:0;}
+
+  /* PREVIEW MODAL */
   .modal-overlay{padding:0;}
   .preview-modal{border-radius:0;min-height:100vh;}
   .preview-modal-header{flex-wrap:wrap;gap:8px;padding:12px 14px;}
   .preview-modal-actions{flex-wrap:wrap;width:100%;}
+  .preview-letterhead{padding:14px 16px;flex-direction:column;gap:8px;}
+  .preview-lh-right{text-align:left;}
+  .preview-lh-name{font-size:17px;}
+  .preview-customer-bar{padding:10px 16px;flex-direction:column;align-items:flex-start;gap:4px;}
+  .preview-items{padding:10px 16px;}
+  .preview-tbl{font-size:11px;}
+  .preview-tbl thead th{padding:5px 6px;font-size:9px;}
+  .preview-tbl .item-cost-row td{padding:3px 6px;font-size:11px;}
+  .preview-photo-strip img{width:70px;height:70px;}
+  .preview-photo-strip.job-sheet img{width:140px;height:190px;}
+  .preview-summary-strip{padding:10px 16px;flex-direction:column;gap:10px;align-items:flex-start;}
+  .preview-summary-cols{flex-wrap:wrap;gap:12px 20px;}
+  .preview-grand-block{text-align:left;}
+  .preview-grand-block .ps-grand{font-size:17px;}
+  .preview-terms{padding:10px 16px 16px;}
+
+  /* DRAFT BANNER */
+  .draft-banner{flex-direction:column;gap:8px;align-items:flex-start;}
 }
+
+@media(max-width:420px){
+  /* HEADER */
+  .app-header{padding:0 10px;height:50px;}
+  .header-logo{font-size:16px;}
+  .version-tag{display:none;}
+
+  /* BUILDER item fields — single col on very small */
+  .item-row2{grid-template-columns:1fr 1fr;}
+  .form-row.three{grid-template-columns:1fr;}
+
+  /* VIEW actions stay scrollable */
+  .view-actions{gap:5px;}
+  .view-actions .btn-sm{padding:5px 8px;font-size:11px;}
+
+  /* QUOTE CARD tighter */
+  .quote-card{padding:10px 12px;}
+  .quote-card-name{font-size:14px;}
+  .quote-card-amount{font-size:14px;}
+
+  /* CALC BAR single line wrap */
+  .calc-bar{padding:6px 10px;}
+
+  /* TOAST fits screen */
+  .toast{white-space:normal;text-align:center;width:calc(100% - 32px);}
+}
+
 </style>
 </head>
 <body>
@@ -285,7 +352,7 @@ textarea{resize:vertical;min-height:60px;}
 <!-- LIST -->
 <div id="list-screen" class="screen">
   <div class="app-header">
-    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.26</div></div>
+    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.28</div></div>
     <div class="header-actions">
       <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
       <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
@@ -305,7 +372,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.26</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.28</div></div>
     </div>
     <div class="header-actions">
       <div class="autosave-indicator" id="autosave-indicator"><div class="autosave-dot"></div><span id="autosave-text">draft</span></div>
@@ -383,7 +450,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.26</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.28</div></div>
     </div>
     <div class="view-actions">
       <button class="btn btn-outline btn-sm" onclick="editCurrentQuote()">✏️ Edit</button>
@@ -433,7 +500,7 @@ const firebaseConfig={apiKey:"AIzaSyARVv1P0ssuKzfpS1M59AB-rG3riIWh-2c",authDomai
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore(),auth=firebase.auth(),storage=firebase.storage();
 
-const APP_VERSION='1.0.26',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
+const APP_VERSION='1.0.28',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
 const WOOD_TYPES=["Teak","Khair","Sagwan","Mango","Sheesham","Other"];
 const DEFAULT_WOOD_RATE=5500,DEFAULT_LATHE_RATE=100;
 const ALLOWED_EMAIL='rahulshrm195@gmail.com';
