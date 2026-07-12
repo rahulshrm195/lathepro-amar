@@ -141,8 +141,8 @@ textarea{resize:vertical;min-height:60px;}
 .view-table-row{border-bottom:1px solid var(--border);padding:10px 12px;}
 .view-table-row:last-child{border-bottom:none;}
 .view-row-top{display:grid;grid-template-columns:28px 1fr 80px 50px 80px 80px 80px;align-items:center;gap:6px;font-size:13px;}
-.view-row-photos{display:flex;gap:5px;margin-top:8px;padding-left:34px;flex-wrap:wrap;}
-.view-row-photos img{width:44px;height:44px;border-radius:5px;object-fit:cover;border:1px solid var(--border);}
+.view-row-photos{display:flex;gap:8px;margin-top:10px;padding-left:34px;flex-wrap:wrap;}
+.view-row-photos img{width:90px;height:90px;border-radius:8px;object-fit:cover;border:1px solid var(--border);cursor:pointer;}
 .view-row-note{font-size:11px;color:var(--text3);margin-top:4px;padding-left:34px;}
 .view-col-num{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);font-weight:600;}
 .view-col-name{font-weight:500;}
@@ -201,8 +201,8 @@ textarea{resize:vertical;min-height:60px;}
 .preview-tbl .item-photo-row td{padding:6px 8px 10px;border-bottom:1px solid #e8dcc8;}
 .preview-tbl .item-cost-row td{padding:4px 8px;border-bottom:1px solid #f5f0e8;font-size:12px;}
 .preview-tbl td:last-child{text-align:right;}
-.preview-photo-strip{display:flex;gap:5px;flex-wrap:wrap;}
-.preview-photo-strip img{width:50px;height:50px;object-fit:cover;border-radius:5px;border:1px solid #e2d9c8;}
+.preview-photo-strip{display:flex;gap:8px;flex-wrap:wrap;}
+.preview-photo-strip img{width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #e2d9c8;}
 .preview-totals{padding:0 28px 20px;display:flex;justify-content:flex-end;}
 .preview-totals-box{width:260px;border:1px solid #e2d9c8;border-radius:8px;overflow:hidden;}
 .preview-totals-row{display:flex;justify-content:space-between;padding:6px 12px;font-size:12px;border-bottom:1px solid #f0ebe0;background:#fdf8ef;}
@@ -282,7 +282,7 @@ textarea{resize:vertical;min-height:60px;}
 <!-- LIST -->
 <div id="list-screen" class="screen">
   <div class="app-header">
-    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.19</div></div>
+    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.20</div></div>
     <div class="header-actions">
       <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
       <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
@@ -302,7 +302,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.19</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.20</div></div>
     </div>
     <div class="header-actions">
       <div class="autosave-indicator" id="autosave-indicator"><div class="autosave-dot"></div><span id="autosave-text">draft</span></div>
@@ -380,7 +380,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.19</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.20</div></div>
     </div>
     <div class="view-actions">
       <button class="btn btn-outline btn-sm" onclick="editCurrentQuote()">✏️ Edit</button>
@@ -429,7 +429,7 @@ const firebaseConfig={apiKey:"AIzaSyARVv1P0ssuKzfpS1M59AB-rG3riIWh-2c",authDomai
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore(),auth=firebase.auth(),storage=firebase.storage();
 
-const APP_VERSION='1.0.19',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
+const APP_VERSION='1.0.20',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
 const WOOD_TYPES=["Teak","Khair","Sagwan","Mango","Sheesham","Other"];
 const DEFAULT_WOOD_RATE=5500,DEFAULT_LATHE_RATE=100;
 const ALLOWED_EMAIL='rahulshrm195@gmail.com';
@@ -750,7 +750,7 @@ async function generateQuotePDF(){
     y+=7.5;
     // Items
     for(let i=0;i<quote.items.length;i++){
-      const item=quote.items[i],hasP=item.photos&&item.photos.length>0,pS=18,pH=hasP?pS+3:0,rH=13+pH;
+      const item=quote.items[i],hasP=item.photos&&item.photos.length>0,pS=30,pH=hasP?pS+6:0,rH=13+pH;
       if(y+rH+1>272){pdf.addPage();y=14;}
       const bg=i%2===0?[252,249,243]:[247,243,236];pdf.setFillColor(...bg);pdf.rect(M,y,tW,rH,'F');pdf.setDrawColor(226,217,200);pdf.line(M,y+rH,M+tW,y+rH);
       // Photos inline on left
@@ -816,7 +816,7 @@ async function generateJobSheet(){
       pdf.text(item.name||'(no description)',W/2,y+4.8,{align:'center'});
       pdf.text('QTY: '+item.qty+'pcs',W-M-2,y+4.8,{align:'right'});
       y+=9;
-      if(hasP){const pS=22,maxP=Math.min(item.photos.length,4);for(let pi=0;pi<maxP;pi++){try{pdf.addImage(item.photos[pi],'JPEG',M+pi*(pS+3),y,pS,pS);}catch{}}y+=pS+4;}
+      if(hasP){const pS=45,maxP=Math.min(item.photos.length,4);if(y+pS+6>270){pdf.addPage();y=14;}pdf.setFontSize(7);pdf.setTextColor(140,120,80);pdf.text('Reference Photos:',M,y+3);y+=5;for(let pi=0;pi<maxP;pi++){try{pdf.addImage(item.photos[pi],'JPEG',M+pi*(pS+4),y,pS,pS);}catch{}}y+=pS+6;}
       const cW=(W-M*2)/2;[{l:'Dimensions',v:item.length+'" x '+item.width+'" x '+item.thickness+'"'},{l:'Wood Type',v:item.woodType},{l:'CFT/piece',v:(item._cft||0).toFixed(4)},{l:'Quantity',v:item.qty+' pieces'}].forEach((s,si)=>{const cx=M+(si%2)*cW,ry=y+Math.floor(si/2)*7;pdf.setFillColor(si%4<2?250:244,si%4<2?248:242,si%4<2?240:232);pdf.rect(cx,ry,cW,7,'F');pdf.setTextColor(120,100,60);pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.text(s.l+':',cx+2,ry+4.5);pdf.setTextColor(42,31,14);pdf.setFont('helvetica','bold');pdf.text(s.v,cx+cW/2,ry+4.5);});y+=14+3;
       if(item.notes){pdf.setFillColor(255,248,220);pdf.rect(M,y,W-M*2,7,'F');pdf.setTextColor(140,100,20);pdf.setFont('helvetica','bold');pdf.setFontSize(7);pdf.text('Special Instructions: ',M+2,y+3.5);pdf.setFont('helvetica','normal');pdf.text(item.notes,M+42,y+3.5);y+=9;}
       if(item.internalNotes){
