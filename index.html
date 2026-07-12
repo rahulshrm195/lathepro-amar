@@ -433,15 +433,6 @@ const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
 let currentQuote=null,editingQuoteId=null,items=[],discountType='flat',quotesCache=[],_previewMode='quote';
 
 // ── FIREBASE AUTH ──
-onAuthStateChanged(auth,user=>{
-  if(user&&user.email===ALLOWED_EMAIL){
-    showScreen('list');
-    loadAll();
-  } else {
-    showScreen('login');
-  }
-});
-
 async function doLogin(){
   const email=document.getElementById('login-email').value.trim();
   const password=document.getElementById('login-password').value;
@@ -867,6 +858,16 @@ document.getElementById('builder-screen').addEventListener('change',triggerAutoS
 
 // Expose functions used by inline onclick/oninput/onchange HTML attributes —
 // required because this is a module script (module scope ≠ global scope)
+// ── AUTH STATE (placed after all functions are defined) ──
+onAuthStateChanged(auth,user=>{
+  if(user&&user.email===ALLOWED_EMAIL){
+    showScreen('list');
+    loadAll();
+  } else {
+    showScreen('login');
+  }
+});
+
 Object.assign(window,{
   doLogin,doLogout,
   newQuote,goList,addItem,removeItem,updateItem,calcItem,recalcTotals,setDiscType,
