@@ -42,7 +42,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 /* HEADER */
 .app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(60,40,10,.06);}
-.header-logo{font-family:'Playfair Display',serif;font-size:20px;color:var(--gold);}
+.header-logo{font-family:'Playfair Display',serif;font-size:20px;color:var(--gold);cursor:pointer;}
 .version-tag{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;}
 .header-actions{display:flex;gap:8px;align-items:center;}
 
@@ -260,40 +260,33 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="offline-banner" id="offline-banner">📡 You are offline — viewing cached data</div>
 
-<!-- PIN -->
-<div id="pin-screen" class="screen active">
-  <div class="pin-card">
+<!-- LOGIN -->
+<div id="login-screen" class="screen active">
+  <div class="pin-card" style="width:360px;">
     <div class="pin-logo">LathePro</div>
     <div class="pin-sub">Amar Furniture</div>
-    <div class="pin-dots">
-      <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
-      <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+    <div style="margin-bottom:16px;">
+      <div class="form-group" style="margin-bottom:10px;text-align:left;">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" style="background:var(--surface2);">
+      </div>
+      <div class="form-group" style="text-align:left;">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" style="background:var(--surface2);">
+      </div>
     </div>
-    <div class="pin-keypad">
-      <button class="pin-key" onclick="pinKey('1')">1</button>
-      <button class="pin-key" onclick="pinKey('2')">2</button>
-      <button class="pin-key" onclick="pinKey('3')">3</button>
-      <button class="pin-key" onclick="pinKey('4')">4</button>
-      <button class="pin-key" onclick="pinKey('5')">5</button>
-      <button class="pin-key" onclick="pinKey('6')">6</button>
-      <button class="pin-key" onclick="pinKey('7')">7</button>
-      <button class="pin-key" onclick="pinKey('8')">8</button>
-      <button class="pin-key" onclick="pinKey('9')">9</button>
-      <button class="pin-key del" onclick="pinDel()">⌫</button>
-      <button class="pin-key" onclick="pinKey('0')">0</button>
-      <button class="pin-key" onclick="pinSubmit()">✓</button>
-    </div>
-    <div class="pin-error" id="pin-error"></div>
+    <button class="btn btn-gold" style="width:100%;justify-content:center;padding:12px;" onclick="doLogin()">Sign In</button>
+    <div class="pin-error" id="login-error"></div>
   </div>
 </div>
 
 <!-- LIST -->
 <div id="list-screen" class="screen">
   <div class="app-header">
-    <div><div class="header-logo">LathePro</div><div class="version-tag">v1.0.12</div></div>
+    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag">v1.0.14</div></div>
     <div class="header-actions">
       <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
-      <button class="btn btn-outline btn-icon" onclick="lockApp()">🔒</button>
+      <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
   <div class="list-body">
@@ -310,7 +303,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;">LathePro</div><div class="version-tag">v1.0.12</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag">v1.0.14</div></div>
     </div>
     <div class="header-actions">
       <div class="autosave-indicator" id="autosave-indicator"><div class="autosave-dot"></div><span id="autosave-text">draft</span></div>
@@ -367,9 +360,10 @@ textarea{resize:vertical;min-height:60px;}
         <div class="section-card">
           <div class="section-title">Terms & Conditions</div>
           <textarea id="terms-text" style="min-height:80px;">1. GST will be charged extra as applicable.
-2. 50% advance required before work commencement and 50% payment before dispatch from factory.
-3. Delivery subject to material availability.
-4. Prices valid for 15 days from quote date.</textarea>
+2. 50% advance required before work commencement.
+3. Balance 50% to be paid before dispatch from factory.
+4. Delivery subject to material availability.
+5. Prices valid for 15 days from quote date.</textarea>
         </div>
 
         <div class="builder-actions">
@@ -387,7 +381,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;">LathePro</div><div class="version-tag">v1.0.12</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag">v1.0.14</div></div>
     </div>
     <div class="view-actions">
       <button class="btn btn-outline btn-sm" onclick="editCurrentQuote()">✏️ Edit</button>
@@ -429,33 +423,59 @@ textarea{resize:vertical;min-height:60px;}
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getFirestore,collection,addDoc,getDocs,doc,updateDoc,deleteDoc,query,orderBy,getDoc,setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 const firebaseConfig={apiKey:"AIzaSyARVv1P0ssuKzfpS1M59AB-rG3riIWh-2c",authDomain:"amar-furniture-e4782.firebaseapp.com",projectId:"amar-furniture-e4782",storageBucket:"amar-furniture-e4782.firebasestorage.app",messagingSenderId:"1084205045390",appId:"1:1084205045390:web:e3c782b318e872629c5bdf"};
-const APP_VERSION='1.0.12',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
-const PIN="9976",WOOD_TYPES=["Teak","Khair","Sagwan","Mango","Sheesham","Other"];
+const APP_VERSION='1.0.14',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
+const WOOD_TYPES=["Teak","Khair","Sagwan","Mango","Sheesham","Other"];
 const DEFAULT_WOOD_RATE=5500,DEFAULT_LATHE_RATE=100;
-const app=initializeApp(firebaseConfig),db=getFirestore(app);
+const ALLOWED_EMAIL='rahulshrm195@gmail.com';
+const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
 let currentQuote=null,editingQuoteId=null,items=[],discountType='flat',quotesCache=[],_previewMode='quote';
 
-// globals
-['pinKey','pinDel','pinSubmit','lockApp','newQuote','goList','addItem','removeItem','calcItem',
- 'recalcTotals','setDiscType','saveQuote','openQuote','editCurrentQuote','deleteCurrentQuote',
- 'generateQuotePDF','generateJobSheet','shareWhatsApp','addPhotos','removePhoto',
- 'showPreview','closePreview','downloadCurrentPreview','installApp','dismissInstall',
- 'restoreDraft','discardDraft'].forEach(fn=>window[fn]=eval(fn));
+// ── FIREBASE AUTH ──
+onAuthStateChanged(auth,user=>{
+  if(user&&user.email===ALLOWED_EMAIL){
+    showScreen('list');
+    loadAll();
+  } else {
+    showScreen('login');
+  }
+});
 
-// PIN
-let pinEntry='';
-function pinKey(d){if(pinEntry.length>=4)return;pinEntry+=d;updateDots();if(pinEntry.length===4)setTimeout(pinSubmit,150);}
-function pinDel(){pinEntry=pinEntry.slice(0,-1);updateDots();document.getElementById('pin-error').textContent='';}
-function pinSubmit(){if(pinEntry===PIN){showScreen('list');loadQuotes();loadCustomers();}else{document.getElementById('pin-error').textContent='Incorrect PIN. Try again.';pinEntry='';updateDots();}}
-function updateDots(){for(let i=0;i<4;i++)document.getElementById('d'+i).classList.toggle('filled',i<pinEntry.length);}
-function lockApp(){pinEntry='';updateDots();document.getElementById('pin-error').textContent='';showScreen('pin');}
-document.addEventListener('keydown',e=>{if(!document.getElementById('pin-screen').classList.contains('active'))return;if(e.key>='0'&&e.key<='9')pinKey(e.key);else if(e.key==='Backspace'||e.key==='Delete')pinDel();else if(e.key==='Enter')pinSubmit();});
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const password=document.getElementById('login-password').value;
+  const errEl=document.getElementById('login-error');
+  errEl.textContent='';
+  if(!email||!password){errEl.textContent='Please enter email and password.';return;}
+  showLoading(true);
+  try{
+    const cred=await signInWithEmailAndPassword(auth,email,password);
+    if(cred.user.email!==ALLOWED_EMAIL){
+      await signOut(auth);
+      errEl.textContent='Access not authorised for this account.';
+    }
+  }catch(e){
+    const msgs={'auth/invalid-email':'Invalid email address.','auth/user-not-found':'No account found.','auth/wrong-password':'Incorrect password.','auth/invalid-credential':'Incorrect email or password.','auth/too-many-requests':'Too many attempts. Try again later.'};
+    errEl.textContent=msgs[e.code]||'Sign in failed. Please try again.';
+  }
+  showLoading(false);
+}
+
+async function doLogout(){
+  try{await signOut(auth);}catch(e){}
+  showScreen('login');
+}
+
+// Allow pressing Enter on password field to submit
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('login-screen').classList.contains('active'))doLogin();
+});
 
 // NAV
 function showScreen(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(n+'-screen').classList.add('active');}
-function goList(){if(document.getElementById('builder-screen').classList.contains('active'))saveDraftToLocal();showScreen('list');loadQuotes();}
+function goList(){if(document.getElementById('builder-screen').classList.contains('active'))saveDraftToLocal();showScreen('list');loadAll();}
 
 // LIST
 async function loadQuotes(){showLoading(true);try{const q=query(collection(db,'lathepro_quotes'),orderBy('createdAt','desc'));const snap=await getDocs(q);quotesCache=snap.docs.map(d=>({id:d.id,...d.data()}));renderList();}catch(e){toast('Error loading quotes');}showLoading(false);}
@@ -519,7 +539,7 @@ function renderList(){const el=document.getElementById('quotes-list'),cnt=docume
 
 // BUILDER
 let itemIdCounter=0;
-function newQuote(){editingQuoteId=null;items=[];discountType='flat';['cust-name','cust-phone','cust-address','discount-val'].forEach(id=>document.getElementById(id).value='');document.getElementById('quote-date').value=todayStr();document.getElementById('delivery-date').value='';document.getElementById('terms-text').value=`1. GST will be charged extra as applicable.\n2. 50% advance required before work commencement and 50% payment before dispatch from factory.\n3. Delivery subject to material availability.\n4. Prices valid for 15 days from quote date.`;setDiscType('flat');document.getElementById('items-container').innerHTML='';getNextQuoteNo().then(no=>{document.getElementById('builder-quote-num').textContent=no;window._pendingQuoteNo=no;});const draft=checkForDraft();if(draft&&!draft.editingId){document.getElementById('draft-banner').classList.add('show');addItem();}else{document.getElementById('draft-banner').classList.remove('show');addItem();}setAutosaveStatus('idle');showScreen('builder');}
+function newQuote(){editingQuoteId=null;items=[];discountType='flat';['cust-name','cust-phone','cust-address','discount-val'].forEach(id=>document.getElementById(id).value='');document.getElementById('quote-date').value=todayStr();document.getElementById('delivery-date').value='';document.getElementById('terms-text').value=`1. GST will be charged extra as applicable.\n2. 50% advance required before work commencement.\n3. Balance 50% to be paid before dispatch from factory.\n4. Delivery subject to material availability.\n5. Prices valid for 15 days from quote date.`;setDiscType('flat');document.getElementById('items-container').innerHTML='';getNextQuoteNo().then(no=>{document.getElementById('builder-quote-num').textContent=no;window._pendingQuoteNo=no;});const draft=checkForDraft();if(draft&&!draft.editingId){document.getElementById('draft-banner').classList.add('show');addItem();}else{document.getElementById('draft-banner').classList.remove('show');addItem();}setAutosaveStatus('idle');showScreen('builder');}
 async function getNextQuoteNo(){try{const q=query(collection(db,'lathepro_quotes'),orderBy('quoteNo','desc'));const snap=await getDocs(q);if(snap.empty)return'LP-001';const last=snap.docs[0].data().quoteNo||'LP-000';return'LP-'+String(parseInt(last.replace('LP-',''))+1).padStart(3,'0');}catch{return'LP-'+Date.now().toString().slice(-4);}}
 
 function addItem(){const id=++itemIdCounter;items.push({id,name:'',woodType:'Teak',length:'',width:'',thickness:'',qty:1,woodRate:DEFAULT_WOOD_RATE,latheRate:DEFAULT_LATHE_RATE,notes:'',internalNotes:'',photos:[]});renderItems();}
@@ -631,7 +651,8 @@ async function saveQuote(){
   const discVal=parseFloat(document.getElementById('discount-val').value)||0;
   const quoteData={quoteNo:window._pendingQuoteNo||editingQuoteId,customerName:custName,phone:document.getElementById('cust-phone').value.trim(),address:document.getElementById('cust-address').value.trim(),date:document.getElementById('quote-date').value,deliveryDate:document.getElementById('delivery-date').value,terms:document.getElementById('terms-text').value,discountType,discountVal:discVal,discountAmount:totals.discAmount,subtotalWood:totals.subtotalWood,subtotalLathe:totals.subtotalLathe,subtotal:totals.subtotal,grandTotal:totals.grandTotal,
     items:items.map(it=>({id:it.id,name:it.name,woodType:it.woodType,length:it.length,width:it.width,thickness:it.thickness,qty:it.qty,woodRate:it.woodRate,latheRate:it.latheRate,notes:it.notes,internalNotes:it.internalNotes||'',photos:it.photos,_cft:it._cft||0,_woodPerPc:it._woodPerPc||0,_lathePerPc:it._lathePerPc||0,_woodTotal:it._woodTotal||0,_latheTotal:it._latheTotal||0,_itemTotal:it._itemTotal||0})),
-    createdAt:editingQuoteId?undefined:new Date().toISOString(),updatedAt:new Date().toISOString()};
+    updatedAt:new Date().toISOString()};
+  if(!editingQuoteId)quoteData.createdAt=new Date().toISOString();
   showLoading(true);
   try{if(editingQuoteId){await updateDoc(doc(db,'lathepro_quotes',editingQuoteId),quoteData);currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote updated ✓');}else{quoteData.quoteNo=window._pendingQuoteNo;const ref=await addDoc(collection(db,'lathepro_quotes'),quoteData);editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote saved ✓');}
     upsertCustomer(quoteData.customerName,quoteData.phone,quoteData.address); // fire-and-forget, doesn't block save
@@ -848,12 +869,13 @@ document.getElementById('builder-screen').addEventListener('change',triggerAutoS
 // Expose functions used by inline onclick/oninput/onchange HTML attributes —
 // required because this is a module script (module scope ≠ global scope)
 Object.assign(window,{
-  addItem,addPhotos,closePreview,deleteCurrentQuote,discardDraft,dismissInstall,
-  downloadCurrentPreview,editCurrentQuote,goList,installApp,lockApp,newQuote,
+  doLogin,doLogout,
+  newQuote,goList,addItem,removeItem,updateItem,calcItem,recalcTotals,setDiscType,
+  addPhotos,removePhoto,
+  saveQuote,openQuote,editCurrentQuote,deleteCurrentQuote,
+  showPreview,closePreview,downloadCurrentPreview,shareWhatsApp,
   onCustomerNameInput,onCustomerPhoneInput,hideCustomerDropdown,selectCustomer,
-  openQuote,pinDel,pinKey,pinSubmit,
-  recalcTotals,removeItem,removePhoto,restoreDraft,saveQuote,setDiscType,
-  shareWhatsApp,showPreview,updateItem
+  restoreDraft,discardDraft,installApp,dismissInstall
 });
 </script>
 </body>
