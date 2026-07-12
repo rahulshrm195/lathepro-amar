@@ -204,7 +204,7 @@ textarea{resize:vertical;min-height:60px;}
 .preview-photo-strip{display:flex;gap:8px;flex-wrap:wrap;}
 .preview-photo-strip img{width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #e2d9c8;}
 .preview-photo-strip.job-sheet{display:flex;gap:10px;flex-wrap:wrap;}
-.preview-photo-strip.job-sheet img{width:350px;height:200px;border-radius:10px;object-fit:contain;background:#f5f0e8;border:1px solid #e2d9c8;}
+.preview-photo-strip.job-sheet img{width:200px;height:300px;border-radius:10px;object-fit:contain;background:#f5f0e8;border:1px solid #e2d9c8;}
 .preview-totals{padding:0 28px 20px;display:flex;justify-content:flex-end;}
 .preview-totals-box{width:260px;border:1px solid #e2d9c8;border-radius:8px;overflow:hidden;}
 .preview-totals-row{display:flex;justify-content:space-between;padding:6px 12px;font-size:12px;border-bottom:1px solid #f0ebe0;background:#fdf8ef;}
@@ -284,7 +284,7 @@ textarea{resize:vertical;min-height:60px;}
 <!-- LIST -->
 <div id="list-screen" class="screen">
   <div class="app-header">
-    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.23</div></div>
+    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.24</div></div>
     <div class="header-actions">
       <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
       <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
@@ -304,7 +304,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.23</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.24</div></div>
     </div>
     <div class="header-actions">
       <div class="autosave-indicator" id="autosave-indicator"><div class="autosave-dot"></div><span id="autosave-text">draft</span></div>
@@ -382,7 +382,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.23</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.24</div></div>
     </div>
     <div class="view-actions">
       <button class="btn btn-outline btn-sm" onclick="editCurrentQuote()">✏️ Edit</button>
@@ -431,7 +431,7 @@ const firebaseConfig={apiKey:"AIzaSyARVv1P0ssuKzfpS1M59AB-rG3riIWh-2c",authDomai
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore(),auth=firebase.auth(),storage=firebase.storage();
 
-const APP_VERSION='1.0.23',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
+const APP_VERSION='1.0.24',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
 const WOOD_TYPES=["Teak","Khair","Sagwan","Mango","Sheesham","Other"];
 const DEFAULT_WOOD_RATE=5500,DEFAULT_LATHE_RATE=100;
 const ALLOWED_EMAIL='rahulshrm195@gmail.com';
@@ -820,7 +820,7 @@ async function generateJobSheet(){
     y+=15;
 
     // Photo dimensions in PDF mm
-    const PHOTO_H=65,PHOTO_W=90,PHOTO_GAP=5;
+    const PHOTO_H=80,PHOTO_W=60,PHOTO_GAP=5;
 
     for(let i=0;i<quote.items.length;i++){
       const item=quote.items[i];
