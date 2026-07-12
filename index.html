@@ -26,19 +26,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 ::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-track{background:var(--bg);} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 .screen{display:none;min-height:100vh;} .screen.active{display:flex;flex-direction:column;}
 
-/* PIN */
-#pin-screen{align-items:center;justify-content:center;background:linear-gradient(135deg,#fdf8ef,#f0e8d0);}
-.pin-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:44px 36px;width:320px;text-align:center;box-shadow:var(--shadow-lg);}
-.pin-logo{font-family:'Playfair Display',serif;font-size:30px;color:var(--gold);letter-spacing:1px;margin-bottom:3px;}
-.pin-sub{color:var(--text3);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:32px;}
-.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:28px;}
-.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:all .2s;}
-.pin-dot.filled{background:var(--gold);border-color:var(--gold);box-shadow:0 0 8px rgba(154,110,46,.3);}
-.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-.pin-key{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Mono',monospace;font-size:20px;padding:14px;cursor:pointer;transition:all .15s;}
-.pin-key:hover{background:var(--gold-light);border-color:var(--gold);} .pin-key:active{transform:scale(.95);}
-.pin-key.del{font-size:15px;color:var(--text2);}
-.pin-error{color:var(--red);font-size:12px;margin-top:14px;min-height:18px;}
+/* LOGIN */
+#login-screen{align-items:center;justify-content:center;background:linear-gradient(135deg,#fdf8ef,#f0e8d0);padding:20px;}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px 44px;width:100%;max-width:380px;box-shadow:var(--shadow-lg);}
+.login-logo{font-family:'Playfair Display',serif;font-size:34px;color:var(--gold);letter-spacing:1px;text-align:center;margin-bottom:4px;}
+.login-sub{color:var(--text3);font-size:11px;letter-spacing:2px;text-transform:uppercase;text-align:center;margin-bottom:36px;}
+.login-field{margin-bottom:16px;}
+.login-field label{display:block;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;}
+.login-field input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 14px;transition:border-color .15s;}
+.login-field input:focus{outline:none;border-color:var(--gold);background:var(--gold-bg);}
+.login-btn{width:100%;padding:13px;background:var(--gold);color:#fff;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:background .15s;margin-top:8px;letter-spacing:.3px;}
+.login-btn:hover{background:var(--gold2);}
+.login-btn:active{transform:scale(.98);}
+.login-error{color:var(--red);font-size:12px;margin-top:12px;min-height:18px;text-align:center;}
+@media(max-width:420px){.login-card{padding:36px 24px;}}
 
 /* HEADER */
 .app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(60,40,10,.06);}
@@ -230,7 +231,7 @@ textarea{resize:vertical;min-height:60px;}
   .item-row1{grid-template-columns:1fr;}
   .item-row2{grid-template-columns:1fr 1fr;}
   .view-table-header,.view-row-top{grid-template-columns:24px 1fr 70px 40px 70px;}
-  .builder-actions{flex-direction:column;} .pin-card{width:calc(100% - 40px);}
+  .builder-actions{flex-direction:column;}
   .preview-letterhead,.preview-customer-bar,.preview-items,.preview-totals,.preview-terms{padding-left:16px;padding-right:16px;}
   .quote-card{flex-direction:column;align-items:flex-start;gap:6px;}
   .quote-card-right{text-align:left;width:100%;display:flex;justify-content:space-between;align-items:baseline;}
@@ -262,21 +263,19 @@ textarea{resize:vertical;min-height:60px;}
 
 <!-- LOGIN -->
 <div id="login-screen" class="screen active">
-  <div class="pin-card" style="width:360px;">
-    <div class="pin-logo">LathePro</div>
-    <div class="pin-sub">Amar Furniture</div>
-    <div style="margin-bottom:16px;">
-      <div class="form-group" style="margin-bottom:10px;text-align:left;">
-        <label>Email</label>
-        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" style="background:var(--surface2);">
-      </div>
-      <div class="form-group" style="text-align:left;">
-        <label>Password</label>
-        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" style="background:var(--surface2);">
-      </div>
+  <div class="login-card">
+    <div class="login-logo">LathePro</div>
+    <div class="login-sub">Amar Furniture</div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email">
     </div>
-    <button class="btn btn-gold" style="width:100%;justify-content:center;padding:12px;" onclick="doLogin()">Sign In</button>
-    <div class="pin-error" id="login-error"></div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="login-error"></div>
   </div>
 </div>
 
