@@ -284,7 +284,7 @@ textarea{resize:vertical;min-height:60px;}
 <!-- LIST -->
 <div id="list-screen" class="screen">
   <div class="app-header">
-    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.24</div></div>
+    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.25</div></div>
     <div class="header-actions">
       <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
       <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
@@ -304,7 +304,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.24</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.25</div></div>
     </div>
     <div class="header-actions">
       <div class="autosave-indicator" id="autosave-indicator"><div class="autosave-dot"></div><span id="autosave-text">draft</span></div>
@@ -382,13 +382,14 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.24</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.25</div></div>
     </div>
     <div class="view-actions">
       <button class="btn btn-outline btn-sm" onclick="editCurrentQuote()">✏️ Edit</button>
       <button class="btn btn-outline btn-sm" onclick="showPreview('quote')">👁 Preview</button>
       <button class="btn btn-outline btn-sm" onclick="showPreview('job')">🔧 Job Sheet</button>
       <button class="btn btn-outline btn-sm" onclick="shareWhatsApp()">📱 WhatsApp</button>
+      <button class="btn btn-outline btn-sm" onclick="duplicateCurrentQuote()">⧉ Duplicate</button>
       <button class="btn btn-danger btn-sm" onclick="deleteCurrentQuote()">🗑</button>
     </div>
   </div>
@@ -431,7 +432,7 @@ const firebaseConfig={apiKey:"AIzaSyARVv1P0ssuKzfpS1M59AB-rG3riIWh-2c",authDomai
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore(),auth=firebase.auth(),storage=firebase.storage();
 
-const APP_VERSION='1.0.24',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
+const APP_VERSION='1.0.25',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
 const WOOD_TYPES=["Teak","Khair","Sagwan","Mango","Sheesham","Other"];
 const DEFAULT_WOOD_RATE=5500,DEFAULT_LATHE_RATE=100;
 const ALLOWED_EMAIL='rahulshrm195@gmail.com';
@@ -693,6 +694,30 @@ function renderView(q){
 function editCurrentQuote(){if(!currentQuote)return;editingQuoteId=currentQuote.id;window._pendingQuoteNo=currentQuote.quoteNo;document.getElementById('builder-quote-num').textContent=currentQuote.quoteNo;document.getElementById('cust-name').value=currentQuote.customerName||'';document.getElementById('cust-phone').value=currentQuote.phone||'';document.getElementById('cust-address').value=currentQuote.address||'';document.getElementById('quote-date').value=currentQuote.date||todayStr();document.getElementById('delivery-date').value=currentQuote.deliveryDate||'';document.getElementById('terms-text').value=currentQuote.terms||'';document.getElementById('discount-val').value=currentQuote.discountVal||'';setDiscType(currentQuote.discountType||'flat');itemIdCounter=0;items=(currentQuote.items||[]).map(it=>({...it,id:++itemIdCounter}));renderItems();items.forEach(it=>calcItem(it.id));recalcTotals();showScreen('builder');}
 async function deleteCurrentQuote(){if(!currentQuote)return;if(!confirm(`Delete ${currentQuote.quoteNo}?`))return;showLoading(true);try{await db.collection('lathepro_quotes').doc(currentQuote.id).delete();toast('Deleted');currentQuote=null;goList();}catch(e){toast('Error');}showLoading(false);}
 
+async function duplicateCurrentQuote(){
+  if(!currentQuote)return;
+  showLoading(true);
+  try{
+    const newNo=await getNextQuoteNo();
+    const copy={
+      ...currentQuote,
+      quoteNo:newNo,
+      date:todayStr(),
+      deliveryDate:'',
+      createdAt:new Date().toISOString(),
+      updatedAt:new Date().toISOString()
+    };
+    delete copy.id;
+    const ref=await db.collection('lathepro_quotes').add(copy);
+    toast('Duplicated as '+newNo+' ✓');
+    // Open the new duplicate
+    currentQuote={id:ref.id,...copy};
+    renderView(currentQuote);
+    showScreen('view');
+  }catch(e){toast('Error duplicating: '+e.message);}
+  showLoading(false);
+}
+
 // PREVIEW MODAL
 async function showPreview(mode){
   _previewMode=mode;
@@ -707,7 +732,7 @@ function downloadCurrentPreview(){closePreview();if(_previewMode==='job')generat
 
 function buildQuotePreviewHTML(q){
   const rows=(q.items||[]).map((item,idx)=>{
-    const photos=item.photos&&item.photos.length?`<tr class="item-photo-row"><td colspan="6"><div class="preview-photo-strip">${item.photos.slice(0,5).map(p=>`<img src="${p}">`).join('')}</div></td></tr>`:'';
+    const photos=item.photos&&item.photos.length?`<tr class="item-photo-row"><td colspan="6"><div class="preview-photo-strip">${item.photos.slice(0,5).map(p=>`<img src="${p}" crossorigin="anonymous" referrerpolicy="no-referrer" loading="eager" onerror="this.style.display='none'">`).join('')}</div></td></tr>`:'';
     return `<tr class="item-header-row"><td colspan="6"><span style="font-size:10px;color:#9a6e2e;margin-right:8px;">ITEM ${String(idx+1).padStart(2,'0')}</span>${item.name||'—'}<span style="font-size:11px;color:#9e8460;margin-left:8px;">· ${item.woodType} · ${item.length}"×${item.width}"×${item.thickness}" · ${item.qty}pcs · CFT:${(item._cft||0).toFixed(4)}</span></td></tr>${photos}<tr class="item-cost-row"><td>Wood Cost (${item.woodType})</td><td>₹${fmt(item.woodRate)}/CFT</td><td>₹${fmt(item._woodPerPc||0)}</td><td>×${item.qty}</td><td></td><td>₹${fmt(item._woodTotal||0)}</td></tr><tr class="item-cost-row" style="border-bottom:2px solid #e2d9c8;"><td>Lathe Work</td><td>₹${fmt(item.latheRate)}/ft×in</td><td>₹${fmt(item._lathePerPc||0)}</td><td>×${item.qty}</td><td></td><td>₹${fmt(item._itemTotal||0)}</td></tr>${item.notes?`<tr><td colspan="6" style="padding:3px 8px 8px;font-size:11px;color:#9e8460;border-bottom:1px solid #e2d9c8;">📝 ${item.notes}</td></tr>`:''}`;}).join('');
   const summRows=[['Wood Subtotal','₹'+fmt(q.subtotalWood||0)],['Lathe Subtotal','₹'+fmt(q.subtotalLathe||0)],['Subtotal','₹'+fmt(q.subtotal||0)],...(q.discountAmount>0?[[`Discount${q.discountType==='pct'?` (${q.discountVal}%)`:''}`,`−₹${fmt(q.discountAmount)}`]]:[])];
   return `<div class="preview-letterhead"><div class="preview-lh-left"><div class="preview-lh-name">AMAR FURNITURE</div><div class="preview-lh-sub">LathePro Quotation · Nashik, Maharashtra</div></div><div class="preview-lh-right"><div class="preview-lh-qno">${q.quoteNo}</div><div class="preview-lh-date">${formatDate(q.date)}</div>${q.deliveryDate?`<div class="preview-lh-date">Delivery: ${formatDate(q.deliveryDate)}</div>`:''}</div></div><div class="preview-customer-bar"><div><div class="preview-cust-label">Bill To</div><div class="preview-cust-name">${q.customerName}</div>${q.address?`<div class="preview-cust-meta">${q.address}</div>`:''}</div>${q.phone?`<div style="font-size:13px;color:#6b5535;">📞 ${q.phone}</div>`:''}</div><div class="preview-items"><table class="preview-tbl"><thead><tr><th>Description</th><th>Rate</th><th>Per Pc</th><th>Qty</th><th></th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table></div><div class="preview-totals"><div class="preview-totals-box">${summRows.map(r=>`<div class="preview-totals-row"><span class="lbl">${r[0]}</span><span class="val">${r[1]}</span></div>`).join('')}<div class="preview-grand-row"><span class="lbl">Grand Total</span><span class="val">₹${fmt(q.grandTotal||0)}</span></div></div></div><div class="preview-terms"><strong style="color:#6b5535;">Terms &amp; Conditions</strong><br>${(q.terms||'').replace(/\n/g,'<br>')}</div>`;
