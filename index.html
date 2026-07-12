@@ -282,7 +282,7 @@ textarea{resize:vertical;min-height:60px;}
 <!-- LIST -->
 <div id="list-screen" class="screen">
   <div class="app-header">
-    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag">v1.0.16</div></div>
+    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.17</div></div>
     <div class="header-actions">
       <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
       <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
@@ -302,7 +302,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag">v1.0.16</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.17</div></div>
     </div>
     <div class="header-actions">
       <div class="autosave-indicator" id="autosave-indicator"><div class="autosave-dot"></div><span id="autosave-text">draft</span></div>
@@ -380,7 +380,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag">v1.0.16</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.17</div></div>
     </div>
     <div class="view-actions">
       <button class="btn btn-outline btn-sm" onclick="editCurrentQuote()">✏️ Edit</button>
@@ -858,7 +858,10 @@ document.getElementById('quote-date').value=todayStr();
 document.getElementById('builder-screen').addEventListener('input',triggerAutoSave);
 document.getElementById('builder-screen').addEventListener('change',triggerAutoSave);
 
-// ── AUTH STATE ──
+// Set version badges dynamically so HTML never gets out of sync
+document.querySelectorAll('[id^="version-badge"]').forEach(el=>el.textContent='v'+APP_VERSION);
+
+// Auth state
 auth.onAuthStateChanged(user=>{
   if(user&&user.email===ALLOWED_EMAIL){
     showScreen('list');
