@@ -129,8 +129,40 @@ service cloud.firestore {
         && request.resource.data.customerMobile is string
         && request.resource.data.customerMobile.matches('^[0-9]{11,13}$');
       allow read: if isUmbraAdmin();
-      allow update: if isUmbraAdmin();
+      // Customers (no login) may update their own open inquiry — they hold its random id —
+      // but only in the two ways the site does it: saving combos, or linking a placed order.
+      allow update: if isUmbraAdmin() || inquiryCombosUpdate() || inquiryLinkOrder();
       allow delete: if isUmbraAdmin();
+    }
+    function inquiryIsOpen() {
+      return resource.data.status in ['new', 'contacted'];
+    }
+    // Adding/removing combos while the inquiry is still open
+    function inquiryCombosUpdate() {
+      let d = request.resource.data;
+      return inquiryIsOpen()
+        && d.diff(resource.data).affectedKeys().hasOnly(['combos', 'dimensions', 'updatedAt'])
+        && d.combos is list && d.combos.size() <= 30
+        && d.updatedAt is number;
+    }
+    // Marking the inquiry converted when the customer places an order: exactly one history
+    // entry appended, and the linked order must really exist with that order number.
+    function inquiryLinkOrder() {
+      let d = request.resource.data;
+      let oldHistory = resource.data.get('statusHistory', []);
+      let orderPath = /databases/$(database)/documents/umbra_orders/$(d.linkedOrderId);
+      return inquiryIsOpen()
+        && d.diff(resource.data).affectedKeys().hasOnly(['status', 'linkedOrderNo', 'linkedOrderId', 'statusHistory', 'updatedAt'])
+        && d.status == 'converted'
+        && d.linkedOrderNo is string && d.linkedOrderNo.matches('^AMR-UMB-[A-Z0-9]+$')
+        && d.linkedOrderId is string
+        && d.statusHistory is list
+        && d.statusHistory.size() == oldHistory.size() + 1
+        && d.statusHistory[d.statusHistory.size() - 1].status == 'converted'
+        && d.statusHistory[d.statusHistory.size() - 1].by == 'customer'
+        && d.updatedAt is number
+        && exists(orderPath)
+        && get(orderPath).data.orderNo == d.linkedOrderNo;
     }
     // ======================= end Umbra =======================
 
