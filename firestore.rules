@@ -65,10 +65,10 @@ service cloud.firestore {
         && request.resource.data.role == 'admin';
     }
 
-    // NOTE: the umbra read rules below are unchanged, but `resource.data.customerMobile is string`
-    // is true for every saved document, so ANYONE (even signed out) can read all orders and
-    // inquiries with names and mobile numbers. Tighten these once you've checked how the
-    // website's order-tracking page reads them.
+    // ======================= Umbra (umbra-amarfurniture site) =======================
+    function isUmbraAdmin() {
+      return request.auth != null && request.auth.token.email == 'rahulshrm195@gmail.com';
+    }
     match /umbra_orders/{orderId} {
       allow create: if
         request.resource.data.keys().hasAll([
@@ -101,12 +101,25 @@ service cloud.firestore {
           || request.resource.data.customerNote is string
           && request.resource.data.customerNote.size() <= 500
         );
-      allow read: if request.auth != null
-        || resource.data.customerMobile is string;
-      allow update: if request.auth != null
-        && request.auth.token.email == 'rahulshrm195@gmail.com';
-      allow delete: if request.auth != null
-        && request.auth.token.email == 'rahulshrm195@gmail.com';
+      // Fetch ONE order by its id (random, only discoverable through that mobile's lookup).
+      allow get: if true;
+      // Listing / querying orders is admin-only, so nobody can download all customers.
+      allow list: if isUmbraAdmin();
+      allow update: if isUmbraAdmin();
+      allow delete: if isUmbraAdmin();
+    }
+    // Customer "My orders": umbra_lookup/{mobile}/orders/{orderId} files each order under its
+    // mobile. Anyone can list ONE mobile's folder (they must know the number); the parent
+    // collection can't be listed. An entry is only accepted if that order really has that mobile.
+    match /umbra_lookup/{mobile}/orders/{orderId} {
+      allow read: if true;
+      allow create: if isUmbraAdmin() || (
+        request.resource.data.keys().hasOnly(['orderId', 'createdAt'])
+        && request.resource.data.orderId == orderId
+        && exists(/databases/$(database)/documents/umbra_orders/$(orderId))
+        && get(/databases/$(database)/documents/umbra_orders/$(orderId)).data.customerMobile == mobile
+      );
+      allow update, delete: if isUmbraAdmin();
     }
     match /umbra_inquiries/{inquiryId} {
       allow create: if
@@ -115,13 +128,11 @@ service cloud.firestore {
         && request.resource.data.customerName.size() <= 80
         && request.resource.data.customerMobile is string
         && request.resource.data.customerMobile.matches('^[0-9]{11,13}$');
-      allow read: if request.auth != null
-        || resource.data.customerMobile is string;
-      allow update: if request.auth != null
-        && request.auth.token.email == 'rahulshrm195@gmail.com';
-      allow delete: if request.auth != null
-        && request.auth.token.email == 'rahulshrm195@gmail.com';
+      allow read: if isUmbraAdmin();
+      allow update: if isUmbraAdmin();
+      allow delete: if isUmbraAdmin();
     }
+    // ======================= end Umbra =======================
 
     // ======================= LathePro =======================
     function isLatheOwner() {
