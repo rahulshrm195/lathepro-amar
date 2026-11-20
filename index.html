@@ -365,7 +365,7 @@ textarea{resize:vertical;min-height:60px;}
 <!-- LIST -->
 <div id="list-screen" class="screen">
   <div class="app-header">
-    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.1.0</div></div>
+    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.1.1</div></div>
     <div class="header-actions">
       <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
       <button class="btn btn-outline btn-sm owner-only" onclick="openAdmin()">⚙ B2B Admin</button>
@@ -386,7 +386,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.1.0</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.1.1</div></div>
     </div>
     <div class="header-actions">
       <div class="autosave-indicator" id="autosave-indicator"><div class="autosave-dot"></div><span id="autosave-text">draft</span></div>
@@ -467,7 +467,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.1.0</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.1.1</div></div>
     </div>
     <div class="view-actions">
       <button class="btn btn-outline btn-sm edit-act" onclick="editCurrentQuote()">✏️ Edit</button>
@@ -566,14 +566,42 @@ db.enablePersistence({synchronizeTabs:true}).catch(e=>console.warn('Offline cach
 // Resolves true if the server confirmed, false if it was queued for later sync.
 const WRITE_WAIT_MS=6000;
 let _netStalled=false; // set when the server stops answering although the device reports online
+function setNetStalled(v){if(_netStalled===v)return;_netStalled=v;updateOnlineStatus();if(!v)onConnectionRestored();}
+function isOfflineNow(){return !navigator.onLine||_netStalled;}
 function commitWrite(p){
-  p.then(()=>{_netStalled=false;},e=>{console.error('Write failed',e);toast('Sync failed: '+(e.message||e.code));});
-  if(!navigator.onLine||_netStalled)return Promise.resolve(false);
-  return Promise.race([p.then(()=>true),new Promise(r=>setTimeout(()=>{_netStalled=true;r(false);},WRITE_WAIT_MS))]);
+  p.then(()=>{setNetStalled(false);},e=>{console.error('Write failed',e);toast('Sync failed: '+(e.message||e.code));});
+  if(isOfflineNow())return Promise.resolve(false);
+  return Promise.race([p.then(()=>true),new Promise(r=>setTimeout(()=>{setNetStalled(true);r(false);},WRITE_WAIT_MS))]);
 }
+// READS: Firestore waits ~10s before admitting it's offline, and several reads in a row made
+// the app hang for 20-30s on a bad signal. Offline → read the device cache straight away;
+// online → give the server READ_WAIT_MS, then fall back to the cache and mark the link stalled.
+const READ_WAIT_MS=5000;
+async function dbGet(ref){
+  if(isOfflineNow()){
+    try{return await ref.get({source:'cache'});}
+    catch(e){if(!navigator.onLine)throw e;} // not cached: if the device says online, try the server anyway
+  }
+  const server=ref.get();server.catch(()=>{});
+  let timer;const timeout=new Promise(r=>{timer=setTimeout(()=>r('__timeout'),READ_WAIT_MS);});
+  const res=await Promise.race([server,timeout]);clearTimeout(timer);
+  if(res!=='__timeout'){if(res&&res.metadata&&!res.metadata.fromCache)setNetStalled(false);return res;}
+  setNetStalled(true);
+  try{return await ref.get({source:'cache'});}
+  catch(e){ // not cached on this device: give the server a little longer, then give up
+    return await Promise.race([server,new Promise((_,rej)=>setTimeout(()=>{const er=new Error('No connection and no offline copy');er.code='unavailable';rej(er);},15000))]);
+  }
+}
+// While stalled, probe the server every 30s so the app notices when the connection is back
+setInterval(()=>{
+  if(!_netStalled||!navigator.onLine||!role)return;
+  const probe=db.collection('lathepro_settings').doc('rates').get({source:'server'});
+  Promise.race([probe,new Promise((_,rej)=>setTimeout(()=>rej(new Error('probe timeout')),READ_WAIT_MS))])
+    .then(()=>setNetStalled(false)).catch(()=>{});
+},30000);
 function savedToast(msg,synced){toast(synced?msg:msg.replace(' ✓','')+' offline — will sync ✓');}
 
-const APP_VERSION='1.1.0',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
+const APP_VERSION='1.1.1',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
 const WOOD_TYPES=["Teak","Khair","Sagwan","Mango","Sheesham","Other"];
 const DEFAULT_WOOD_RATE=5500,DEFAULT_LATHE_RATE=100;
 const ALLOWED_EMAIL='rahulshrm195@gmail.com';
@@ -590,7 +618,7 @@ function latheRate(){return typeof rates.lathe==='number'?rates.lathe:DEFAULT_LA
 function vendorDiscount(){return vendorProfile?Number(vendorProfile.discountPct)||0:0;}
 function QCOL(){return isVendor()?'lathepro_vendor_quotes':'lathepro_quotes';}
 function loginToEmail(v){v=v.trim();return v.includes('@')?v:v.toLowerCase()+'@'+VENDOR_EMAIL_DOMAIN;}
-async function loadRates(){try{const snap=await db.collection('lathepro_settings').doc('rates').get();if(snap.exists){const d=snap.data();rates={wood:d.wood||{},lathe:typeof d.lathe==='number'?d.lathe:DEFAULT_LATHE_RATE};}}catch(e){console.warn('Rates unavailable, using defaults',e);}}
+async function loadRates(){try{const snap=await dbGet(db.collection('lathepro_settings').doc('rates'));if(snap.exists){const d=snap.data();rates={wood:d.wood||{},lathe:typeof d.lathe==='number'?d.lathe:DEFAULT_LATHE_RATE};}}catch(e){console.warn('Rates unavailable, using defaults',e);}}
 let currentQuote=null,editingQuoteId=null,items=[],discountType='flat',quotesCache=[],_previewMode='quote';
 
 // ── FIREBASE AUTH ──
@@ -629,7 +657,7 @@ function goList(){if(document.getElementById('view-screen').classList.contains('
 async function loadQuotes(){showLoading(true);try{
   // Vendors may only query their own quotes (enforced by Firestore rules); sort client-side to avoid a composite index
   const q=isVendor()?db.collection(QCOL()).where('vendorUid','==',auth.currentUser.uid):db.collection(QCOL()).orderBy('createdAt','desc');
-  const snap=await q.get();quotesCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+  const snap=await dbGet(q);quotesCache=snap.docs.map(d=>({id:d.id,...d.data()}));
   if(isVendor())quotesCache.sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
   renderList();}catch(e){console.error(e);toast('Error loading quotes');}showLoading(false);}
 
@@ -638,7 +666,7 @@ let customersCache=[];
 async function loadCustomers(){
   if(isVendor()){customersCache=[];return;} // customer book is owner-only
   try{
-    const snap=await db.collection('lathepro_customers').get();
+    const snap=await dbGet(db.collection('lathepro_customers'));
     customersCache=snap.docs.map(d=>({id:d.id,...d.data()}));
   }catch(e){console.warn('Could not load customers',e);}
 }
@@ -697,7 +725,7 @@ function newQuote(){editingQuoteId=null;currentQuote=null;items=[];discountType=
 // QUOTE NUMBERS — compared numerically (text sort put LP-999 after LP-1000)
 function quoteNoNum(no){const m=String(no||'').match(/(\d+)\s*$/);return m?parseInt(m[1],10):0;} // trailing digits only ('B2B-001' → 1)
 function formatQuoteNo(n){return(isVendor()?'B2B-':'LP-')+String(n).padStart(3,'0');}
-async function maxExistingQuoteNum(){const snap=isVendor()?await db.collection(QCOL()).where('vendorUid','==',auth.currentUser.uid).get():await db.collection('lathepro_quotes').get();return snap.docs.reduce((m,d)=>Math.max(m,quoteNoNum(d.data().quoteNo)),0);}
+async function maxExistingQuoteNum(){const snap=isVendor()?await dbGet(db.collection(QCOL()).where('vendorUid','==',auth.currentUser.uid)):await dbGet(db.collection('lathepro_quotes'));return snap.docs.reduce((m,d)=>Math.max(m,quoteNoNum(d.data().quoteNo)),0);}
 // Tentative number shown in the builder; the real one is allocated on save
 async function getNextQuoteNo(){try{return formatQuoteNo(await maxExistingQuoteNum()+1);}catch{return'LP-…';}}
 // Allocate a unique number atomically via a counter doc, so two devices can't get the same one
@@ -817,7 +845,21 @@ function setDiscType(type){discountType=type;document.getElementById('disc-flat-
 async function addPhotos(itemId,input){
   const item=items.find(i=>i.id===itemId);if(!item)return;
   const files=Array.from(input.files);if(!files.length)return;
-  if(!navigator.onLine){toast('Photos need internet — add them when back online');input.value='';return;}
+  if(isOfflineNow()){
+    // Offline: keep a compressed copy in the quote; it's uploaded to Storage once back online
+    showLoading(true);
+    try{
+      let added=0;
+      for(const file of files){
+        const data=await compressImage(file);
+        if(pendingPhotoBytes(items)+data.length>MAX_PENDING_PHOTO_BYTES){toast('Offline photo limit reached for this quote — add more when online');break;}
+        item.photos.push(data);added++;
+      }
+      refreshPhotosGrid(itemId);triggerAutoSave();
+      if(added)toast(added+' photo'+(added>1?'s':'')+' saved offline — will upload when online');
+    }catch(e){toast('Could not read photo: '+e.message);}
+    input.value='';showLoading(false);return;
+  }
   showLoading(true);
   try{
     for(const file of files){
@@ -831,6 +873,49 @@ async function addPhotos(itemId,input){
   }catch(e){toast('Photo upload failed: '+e.message);}
   showLoading(false);
 }
+// ── Offline photo queue ──
+// Photos added offline are stored in the quote as compressed JPEG data URLs (kept small so the
+// Firestore document stays well under its 1 MB limit) and swapped for Storage URLs when online.
+const MAX_PENDING_PHOTO_BYTES=650*1024;
+function isPendingPhoto(p){return typeof p==='string'&&p.startsWith('data:');}
+function pendingPhotoBytes(list){return (list||[]).reduce((a,it)=>a+(it.photos||[]).filter(isPendingPhoto).reduce((b,p)=>b+p.length,0),0);}
+function hasPendingPhotos(list){return (list||[]).some(it=>(it.photos||[]).some(isPendingPhoto));}
+function compressImage(file,maxDim=1280,quality=0.7){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);const img=new Image();
+    img.onload=()=>{
+      let w=img.naturalWidth,h=img.naturalHeight;const k=Math.min(1,maxDim/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);
+      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);resolve(c.toDataURL('image/jpeg',quality));
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('not an image'));};
+    img.src=url;
+  });
+}
+function dataURLtoBlob(d){const [h,b]=d.split(',');const mime=(h.match(/data:([^;]+)/)||[])[1]||'image/jpeg';const bin=atob(b);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime});}
+// Upload pending photos in the given items, replacing data URLs with Storage URLs. Returns true if anything changed.
+async function uploadPendingPhotos(list){
+  let changed=false;
+  for(const it of list||[]){
+    const photos=it.photos||[];
+    for(let i=0;i<photos.length;i++){
+      if(!isPendingPhoto(photos[i]))continue;
+      const ref=storage.ref(`lathepro/quotes/${Date.now()}_${Math.random().toString(36).slice(2,8)}_offline.jpg`);
+      await ref.put(dataURLtoBlob(photos[i]),{contentType:'image/jpeg'});
+      photos[i]=await ref.getDownloadURL();changed=true;
+    }
+  }
+  return changed;
+}
+// After reconnecting: upload photos that were saved offline in already-saved quotes
+async function syncPendingPhotos(){
+  if(isVendor()||isOfflineNow())return;
+  for(const q of quotesCache.filter(q=>hasPendingPhotos(q.items))){
+    try{if(await uploadPendingPhotos(q.items))await commitWrite(db.collection('lathepro_quotes').doc(q.id).update({items:q.items,updatedAt:new Date().toISOString()}));}
+    catch(e){console.warn('Photo sync paused',e);return;}
+  }
+}
+
 async function removePhoto(itemId,idx){
   const item=items.find(i=>i.id===itemId);if(!item)return;
   const url=item.photos[idx];
@@ -843,7 +928,7 @@ function quotePhotos(q){return (q&&q.items||[]).flatMap(it=>it.photos||[]);}
 // Delete storage files from `urls` that no saved quote references any more (best effort)
 async function cleanupUnusedPhotos(urls){
   const candidates=[...new Set(urls)].filter(u=>u&&u.includes('firebasestorage'));
-  if(!candidates.length||!navigator.onLine)return; // leftovers are harmless; cleaned next time
+  if(!candidates.length||isOfflineNow())return; // leftovers are harmless; cleaned next time
   try{
     const snap=await db.collection('lathepro_quotes').get();
     const used=new Set(snap.docs.flatMap(d=>quotePhotos(d.data())));
@@ -861,6 +946,7 @@ async function saveQuote(){
   if(!custName){toast('Please enter customer name');return false;}
   if(!items.length){toast('Please add at least one item');return false;}
   items.forEach(it=>calcItem(it.id));const totals=recalcTotals();
+  if(!isVendor()&&!isOfflineNow()&&hasPendingPhotos(items)){showLoading(true);try{await uploadPendingPhotos(items);items.forEach(it=>refreshPhotosGrid(it.id));}catch(e){console.warn('Pending photo upload failed; keeping offline copies',e);}}
   const discVal=isVendor()?vendorDiscount():(parseFloat(document.getElementById('discount-val').value)||0);
   const quoteData={quoteNo:window._pendingQuoteNo||editingQuoteId,customerName:custName,phone:document.getElementById('cust-phone').value.trim(),address:document.getElementById('cust-address').value.trim(),date:document.getElementById('quote-date').value,deliveryDate:document.getElementById('delivery-date').value,terms:document.getElementById('terms-text').value,discountType,discountVal:discVal,discountAmount:totals.discAmount,subtotalWood:totals.subtotalWood,subtotalLathe:totals.subtotalLathe,subtotal:totals.subtotal,grandTotal:totals.grandTotal,
     items:items.map(it=>({id:it.id,name:it.name,woodType:it.woodType,length:it.length,width:it.width,thickness:it.thickness,qty:it.qty,woodRate:it.woodRate,latheRate:it.latheRate,notes:it.notes,internalNotes:it.internalNotes||'',photos:it.photos,_cft:it._cft||0,_woodPerPc:it._woodPerPc||0,_lathePerPc:it._lathePerPc||0,_woodTotal:it._woodTotal||0,_latheTotal:it._latheTotal||0,_itemTotal:it._itemTotal||0})),
@@ -868,13 +954,13 @@ async function saveQuote(){
   if(isVendor()){quoteData.vendorUid=auth.currentUser.uid;quoteData.vendorName=vendorProfile.businessName||'';quoteData.discountType='pct';quoteData.discountVal=vendorDiscount();quoteData.items.forEach(it=>{it.photos=[];it.internalNotes='';});}
   if(!editingQuoteId)quoteData.createdAt=new Date().toISOString();
   showLoading(true);
-  try{if(editingQuoteId){const prevSnap=await db.collection(QCOL()).doc(editingQuoteId).get();const prevPhotos=prevSnap.exists?quotePhotos(prevSnap.data()):[];const synced=await commitWrite(db.collection(QCOL()).doc(editingQuoteId).update(quoteData));const keep=new Set(quotePhotos(quoteData));cleanupUnusedPhotos(prevPhotos.filter(u=>!keep.has(u)));currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');savedToast('Quote updated ✓',synced);}else{quoteData.quoteNo=await allocateQuoteNo();window._pendingQuoteNo=quoteData.quoteNo;document.getElementById('builder-quote-num').textContent=quoteData.quoteNo;const ref=db.collection(QCOL()).doc();const synced=await commitWrite(ref.set(quoteData));editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');savedToast('Quote saved ✓',synced);}
+  try{if(editingQuoteId){const prevSnap=await dbGet(db.collection(QCOL()).doc(editingQuoteId));const prevPhotos=prevSnap.exists?quotePhotos(prevSnap.data()):[];const synced=await commitWrite(db.collection(QCOL()).doc(editingQuoteId).update(quoteData));const keep=new Set(quotePhotos(quoteData));cleanupUnusedPhotos(prevPhotos.filter(u=>!keep.has(u)));currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');savedToast('Quote updated ✓',synced);}else{quoteData.quoteNo=await allocateQuoteNo();window._pendingQuoteNo=quoteData.quoteNo;document.getElementById('builder-quote-num').textContent=quoteData.quoteNo;const ref=db.collection(QCOL()).doc();const synced=await commitWrite(ref.set(quoteData));editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');savedToast('Quote saved ✓',synced);}
     upsertCustomer(quoteData.customerName,quoteData.phone,quoteData.address); // fire-and-forget, doesn't block save
   }catch(e){toast('Error saving: '+e.message);showLoading(false);return false;}showLoading(false);return true;
 }
 
 // VIEW
-async function openQuote(id,col){showLoading(true);try{const snap=await db.collection(col||QCOL()).doc(id).get();if(!snap.exists){toast('Not found');showLoading(false);return;}currentQuote={id:snap.id,...snap.data()};if(col)currentQuote._readonly=true;document.getElementById('view-screen').classList.toggle('readonly',!!currentQuote._readonly);renderView(currentQuote);showScreen('view');}catch(e){toast('Error loading quote');}showLoading(false);}
+async function openQuote(id,col){showLoading(true);try{const snap=await dbGet(db.collection(col||QCOL()).doc(id));if(!snap.exists){toast('Not found');showLoading(false);return;}currentQuote={id:snap.id,...snap.data()};if(col)currentQuote._readonly=true;document.getElementById('view-screen').classList.toggle('readonly',!!currentQuote._readonly);renderView(currentQuote);showScreen('view');}catch(e){toast('Error loading quote');}showLoading(false);}
 
 function renderView(q){
   const el=document.getElementById('view-body');
@@ -942,12 +1028,33 @@ function buildJobPreviewHTML(q){
 }
 
 // PDF - QUOTE (compact)
+// Photos → data URLs for jsPDF. fetch() goes through the service worker, so photos viewed or
+// pre-cached before work offline too. Returns {url: dataURL|null}.
+function blobToDataURL(b){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(b);});}
+async function photoData(url){
+  if(isPendingPhoto(url))return url;
+  try{const r=await fetch(url,{mode:'cors',credentials:'omit'});if(!r.ok)return null;return await blobToDataURL(await r.blob());}catch(e){return null;}
+}
+async function preloadPhotos(quote,perItem){
+  const urls=[...new Set((quote.items||[]).flatMap(it=>(it.photos||[]).slice(0,perItem)))];
+  const out={};await Promise.all(urls.map(async u=>{out[u]=await photoData(u);}));return out;
+}
+function imgFormat(d){return /^data:image\/png/i.test(d)?'PNG':'JPEG';}
+// Keep photos of recent quotes in the offline cache so they show without internet later
+let _warmed=new Set();
+function warmPhotoCache(){
+  if(isVendor()||!('serviceWorker' in navigator)||(navigator.connection&&navigator.connection.saveData))return;
+  const urls=quotesCache.slice(0,20).flatMap(q=>(q.items||[]).flatMap(it=>it.photos||[])).filter(u=>!isPendingPhoto(u)&&!_warmed.has(u));
+  (async()=>{for(const u of urls){if(isOfflineNow())return;_warmed.add(u);try{await fetch(u,{mode:'cors',credentials:'omit'});}catch(e){}}})();
+}
+
 async function generateQuotePDF(){
   if(document.getElementById('builder-screen').classList.contains('active'))await saveQuote();
   const quote=currentQuote;if(!quote)return;
   showLoading(true);
   try{
     const{jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:'a4'});const W=210,M=14;let y=0;
+    const photoMap=await preloadPhotos(quote,3);
     // Header
     pdf.setFillColor(26,18,9);pdf.rect(0,0,W,30,'F');
     pdf.setTextColor(201,168,76);pdf.setFont('helvetica','bold');pdf.setFontSize(18);pdf.text('AMAR FURNITURE',M,13);
@@ -976,7 +1083,7 @@ async function generateQuotePDF(){
       if(y+rH+1>272){pdf.addPage();y=14;}
       const bg=i%2===0?[252,249,243]:[247,243,236];pdf.setFillColor(...bg);pdf.rect(M,y,tW,rH,'F');pdf.setDrawColor(226,217,200);pdf.line(M,y+rH,M+tW,y+rH);
       // Photos inline on left
-      if(hasP){const maxP=Math.min(item.photos.length,3);for(let pi=0;pi<maxP;pi++){try{pdf.addImage(item.photos[pi],'JPEG',M+1+pi*(pS+1),y+1,pS,pS);}catch{}}}
+      if(hasP){const maxP=Math.min(item.photos.length,3);for(let pi=0;pi<maxP;pi++){const pd=photoMap[item.photos[pi]];if(pd){try{pdf.addImage(pd,imgFormat(pd),M+1+pi*(pS+1),y+1,pS,pS);}catch{}}}}
       const tx=hasP?M+1+3*(pS+1)+2:M+2;
       // Item name + wood type
       pdf.setTextColor(42,31,14);pdf.setFont('helvetica','bold');pdf.setFontSize(8.5);
@@ -1059,6 +1166,7 @@ async function generateJobSheet(){
 
     // Photo dimensions in PDF mm
     const PHOTO_H=80,PHOTO_W=60,PHOTO_GAP=5;
+    const photoMap=await preloadPhotos(quote,3);
 
     for(let i=0;i<quote.items.length;i++){
       const item=quote.items[i];
@@ -1087,7 +1195,7 @@ async function generateJobSheet(){
         pdf.setFontSize(7);pdf.setTextColor(140,120,80);pdf.setFont('helvetica','normal');
         pdf.text('Reference Photos:',M,y+3);y+=5;
         for(let pi=0;pi<numPhotos;pi++){
-          try{pdf.addImage(item.photos[pi],'JPEG',M+pi*(PHOTO_W+PHOTO_GAP),y,PHOTO_W,PHOTO_H,'','FAST');}catch(e){console.warn('Photo error',e);}
+          const pd=photoMap[item.photos[pi]];if(pd){try{pdf.addImage(pd,imgFormat(pd),M+pi*(PHOTO_W+PHOTO_GAP),y,PHOTO_W,PHOTO_H,'','FAST');}catch(e){console.warn('Photo error',e);}}
         }
         y+=PHOTO_H+5;
       }
@@ -1161,8 +1269,25 @@ let _tt;function toast(msg){const el=document.getElementById('toast');el.textCon
 if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').then(reg=>{reg.addEventListener('updatefound',()=>{const w=reg.installing;w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller){if(confirm('🔄 LathePro update available! Reload?')){w.postMessage({type:'SKIP_WAITING'});window.location.reload();}}});});}).catch(()=>{});let r=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!r){r=true;window.location.reload();}});});}
 
 // ONLINE/OFFLINE
-function updateOnlineStatus(){document.getElementById('offline-banner').classList.toggle('show',!navigator.onLine);}
-window.addEventListener('online',()=>{_netStalled=false;updateOnlineStatus();toast('Back online — syncing…');db.waitForPendingWrites().then(()=>{toast('All changes synced ✓');if(document.getElementById('list-screen').classList.contains('active'))loadAll();}).catch(()=>{});});window.addEventListener('offline',updateOnlineStatus);updateOnlineStatus();
+function updateOnlineStatus(){
+  const el=document.getElementById('offline-banner');
+  el.classList.toggle('show',isOfflineNow());
+  el.textContent=!navigator.onLine?'📡 Offline — you can keep working; changes sync when you\'re back online':'📶 Weak connection — working offline; changes sync automatically';
+}
+// Called when the device comes back online or a stalled connection starts answering again
+let _syncing=false;
+function onConnectionRestored(){
+  if(_syncing||isOfflineNow())return;
+  if(_pendingRoleUser){resolveRole(_pendingRoleUser);return;}
+  if(!role)return;
+  _syncing=true;toast('Back online — syncing…');
+  db.waitForPendingWrites().then(async()=>{
+    await syncPendingPhotos();
+    toast('All changes synced ✓');
+    if(document.getElementById('list-screen').classList.contains('active'))loadAll();
+  }).catch(()=>{}).finally(()=>{_syncing=false;});
+}
+window.addEventListener('online',()=>{_netStalled=false;updateOnlineStatus();onConnectionRestored();});window.addEventListener('offline',updateOnlineStatus);updateOnlineStatus();
 
 // INSTALL
 let _dip=null;
@@ -1186,13 +1311,16 @@ document.getElementById('quote-date').value=todayStr();
 document.getElementById('builder-screen').addEventListener('input',triggerAutoSave);
 document.getElementById('builder-screen').addEventListener('change',triggerAutoSave);
 
-async function loadAll(){showLoading(true);try{await Promise.all([loadQuotes(),loadCustomers()]);}catch(e){}showLoading(false);renderList();}
+async function loadAll(){showLoading(true);try{await Promise.all([loadQuotes(),loadCustomers()]);}catch(e){}showLoading(false);renderList();if(!isOfflineNow()){syncPendingPhotos();warmPhotoCache();}}
 
 // Set version badges dynamically so HTML never gets out of sync
 document.querySelectorAll('[id^="version-badge"]').forEach(el=>el.textContent='v'+APP_VERSION);
 
 // Auth state
-auth.onAuthStateChanged(async user=>{
+let _pendingRoleUser=null; // signed in, but the vendor profile couldn't be checked while offline
+auth.onAuthStateChanged(user=>resolveRole(user));
+async function resolveRole(user){
+  _pendingRoleUser=null;
   if(!user){role=null;vendorProfile=null;document.body.classList.remove('role-vendor');showScreen('login');return;}
   showLoading(true);
   try{
@@ -1200,7 +1328,16 @@ auth.onAuthStateChanged(async user=>{
       role='owner';vendorProfile=null;
     }else{
       // Anyone else must have an active vendor profile created from the B2B Admin panel
-      const snap=await db.collection('lathepro_vendors').doc(user.uid).get();
+      let snap;
+      try{snap=await dbGet(db.collection('lathepro_vendors').doc(user.uid));}
+      catch(e){
+        if(isOfflineNow()||e.code==='unavailable'){ // first sign-in on this device with no internet
+          _pendingRoleUser=user;showLoading(false);showScreen('login');
+          document.getElementById('login-error').textContent='No internet — connect once to finish signing in.';
+          return;
+        }
+        throw e;
+      }
       if(!snap.exists||snap.data().active!==true){
         await auth.signOut();showLoading(false);
         document.getElementById('login-error').textContent=snap.exists?'This account has been deactivated. Please contact Amar Furniture.':'Access not authorised for this account.';
@@ -1212,10 +1349,11 @@ auth.onAuthStateChanged(async user=>{
     applyRoleUI();
     await loadRates();
   }catch(e){console.error(e);await auth.signOut();showLoading(false);document.getElementById('login-error').textContent='Could not verify account: '+(e.message||e.code);return;}
+  document.getElementById('login-error').textContent='';
   showLoading(false);
   showScreen('list');
   loadAll();
-});
+}
 
 function applyRoleUI(){
   const v=isVendor();
@@ -1250,7 +1388,7 @@ async function saveRates(){
   showLoading(false);savedToast('Rates saved ✓',synced);
 }
 async function loadVendors(){
-  try{const snap=await db.collection('lathepro_vendors').get();vendorsCache=snap.docs.map(d=>({uid:d.id,...d.data()})).sort((a,b)=>String(a.businessName).localeCompare(String(b.businessName)));}
+  try{const snap=await dbGet(db.collection('lathepro_vendors'));vendorsCache=snap.docs.map(d=>({uid:d.id,...d.data()})).sort((a,b)=>String(a.businessName).localeCompare(String(b.businessName)));}
   catch(e){console.error(e);vendorsCache=[];toast('Could not load vendors — check Firestore rules');}
   renderVendors();
 }
@@ -1314,7 +1452,7 @@ async function toggleVendor(uid){
 async function loadVendorQuotes(){
   const el=document.getElementById('vendor-quotes-list');
   try{
-    const snap=await db.collection('lathepro_vendor_quotes').get();
+    const snap=await dbGet(db.collection('lathepro_vendor_quotes'));
     const list=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
     if(!list.length){el.innerHTML='<div style="font-size:13px;color:var(--text3);">No vendor quotes yet.</div>';return;}
     el.innerHTML=list.map(q=>`<div class="quote-card" onclick="openQuote(decodeURIComponent('${encodeURIComponent(q.id)}'),'lathepro_vendor_quotes')"><div><div class="quote-card-num">${esc(q.quoteNo)} · ${esc(q.vendorName)}</div><div class="quote-card-name">${esc(q.customerName)}</div><div class="quote-card-date">${formatDate(q.date)}</div></div><div><div class="quote-card-amount">₹${fmt(q.grandTotal||0)}</div><div class="quote-card-items">${(q.items||[]).length} item${(q.items||[]).length!==1?'s':''}</div></div></div>`).join('');

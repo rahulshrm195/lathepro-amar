@@ -1,10 +1,10 @@
 // ══════════════════════════════════════════════════
 //   LathePro Service Worker
 //   Amar Furniture — AppCentrik
-//   Version: 1.1.0
+//   Version: 1.1.1
 // ══════════════════════════════════════════════════
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 const CACHE_NAME = 'lathepro-v' + APP_VERSION;
 
 const STATIC_ASSETS = [
@@ -20,6 +20,11 @@ const STATIC_ASSETS = [
   'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js',
 ];
 const CDN_HOSTS = ['cdnjs.cloudflare.com', 'www.gstatic.com'];
+// Quote photos live in Firebase Storage. Download URLs are immutable (new upload = new URL), so
+// they're cached forever in their own cache that survives app updates.
+const PHOTO_CACHE = 'lathepro-photos';
+const STORAGE_HOST = 'firebasestorage.googleapis.com';
+const NAV_TIMEOUT_MS = 4000;
 
 // ── INSTALL: cache all static assets ──
 self.addEventListener('install', event => {
@@ -43,7 +48,7 @@ self.addEventListener('activate', event => {
     caches.keys().then(keys =>
       Promise.all(
         keys
-          .filter(key => key !== CACHE_NAME)
+          .filter(key => key !== CACHE_NAME && key !== PHOTO_CACHE)
           .map(key => {
             console.log('[SW] Deleting old cache:', key);
             return caches.delete(key);
@@ -70,6 +75,25 @@ self.addEventListener('fetch', event => {
     url.hostname.includes('firebaseio.com')
   ) {
     return; // let browser handle normally
+  }
+
+  // Quote photos — cache first. Fetched in CORS mode so the same cached copy serves <img> tags
+  // and the PDF generator's fetch(); falls back to a plain request if CORS isn't available.
+  if (url.hostname === STORAGE_HOST && url.searchParams.get('alt') === 'media') {
+    event.respondWith(
+      caches.open(PHOTO_CACHE).then(async cache => {
+        const hit = await cache.match(event.request.url);
+        if (hit) return hit;
+        try {
+          const res = await fetch(event.request.url, { mode: 'cors', credentials: 'omit' });
+          if (res.ok) cache.put(event.request.url, res.clone());
+          return res;
+        } catch (e) {
+          return fetch(event.request);
+        }
+      })
+    );
+    return;
   }
 
   // For Google Fonts (CSS) — network first, fallback to cache
@@ -104,9 +128,18 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // For app shell (HTML, manifest, sw.js) — network first, fallback to cache
+  // For app shell (HTML, manifest, sw.js) — network first, fallback to cache.
+  // Page loads give the network NAV_TIMEOUT_MS so a weak signal doesn't leave a blank screen.
+  const raw = fetch(event.request);
+  raw.catch(() => {});
+  const network = event.request.mode === 'navigate'
+    ? Promise.race([
+        raw,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('nav timeout')), NAV_TIMEOUT_MS)),
+      ])
+    : raw;
   event.respondWith(
-    fetch(event.request)
+    network
       .then(response => {
         // Cache successful responses
         if (response && response.status === 200) {
@@ -121,7 +154,7 @@ self.addEventListener('fetch', event => {
           if (cached) return cached;
           // If no cache and offline, return the main app shell
           return caches.match('/').then(r => r || caches.match('/index.html'));
-        });
+        }).then(r => r || raw); // nothing cached yet (first visit): keep waiting for the network
       })
   );
 });
