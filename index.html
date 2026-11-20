@@ -723,10 +723,22 @@ async function removePhoto(itemId,idx){
   const url=item.photos[idx];
   item.photos.splice(idx,1);
   refreshPhotosGrid(itemId);
-  // Delete from Storage (best effort)
-  if(url&&url.includes('firebasestorage')){
-    try{await storage.refFromURL(url).delete();}catch(e){console.warn('Could not delete photo from storage',e);}
-  }
+  // File is NOT deleted here: the saved quote (or a duplicate) may still use it.
+  // Unused files are cleaned up after save/delete by cleanupUnusedPhotos().
+}
+function quotePhotos(q){return (q&&q.items||[]).flatMap(it=>it.photos||[]);}
+// Delete storage files from `urls` that no saved quote references any more (best effort)
+async function cleanupUnusedPhotos(urls){
+  const candidates=[...new Set(urls)].filter(u=>u&&u.includes('firebasestorage'));
+  if(!candidates.length)return;
+  try{
+    const snap=await db.collection('lathepro_quotes').get();
+    const used=new Set(snap.docs.flatMap(d=>quotePhotos(d.data())));
+    for(const u of candidates){
+      if(used.has(u))continue;
+      try{await storage.refFromURL(u).delete();}catch(e){console.warn('Could not delete photo from storage',e);}
+    }
+  }catch(e){console.warn('Photo cleanup skipped',e);}
 }
 function refreshPhotosGrid(itemId){const item=items.find(i=>i.id===itemId);if(!item)return;const grid=document.getElementById(`photos-grid-${itemId}`);if(!grid)return;grid.innerHTML=item.photos.map((p,pi)=>`<div class="photo-wrap"><img src="${esc(p)}" alt="ref"><button class="photo-remove" onclick="removePhoto(${itemId},${pi})">×</button></div>`).join('')+`<label class="photo-add-btn" for="photo-input-${itemId}">+</label><input type="file" id="photo-input-${itemId}" accept="image/*" multiple style="display:none" onchange="addPhotos(${itemId},this)">`;}
 
@@ -742,7 +754,7 @@ async function saveQuote(){
     updatedAt:new Date().toISOString()};
   if(!editingQuoteId)quoteData.createdAt=new Date().toISOString();
   showLoading(true);
-  try{if(editingQuoteId){await db.collection('lathepro_quotes').doc(editingQuoteId).update(quoteData);currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote updated ✓');}else{quoteData.quoteNo=window._pendingQuoteNo;const ref=await db.collection('lathepro_quotes').add(quoteData);editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote saved ✓');}
+  try{if(editingQuoteId){const prevSnap=await db.collection('lathepro_quotes').doc(editingQuoteId).get();const prevPhotos=prevSnap.exists?quotePhotos(prevSnap.data()):[];await db.collection('lathepro_quotes').doc(editingQuoteId).update(quoteData);const keep=new Set(quotePhotos(quoteData));cleanupUnusedPhotos(prevPhotos.filter(u=>!keep.has(u)));currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote updated ✓');}else{quoteData.quoteNo=window._pendingQuoteNo;const ref=await db.collection('lathepro_quotes').add(quoteData);editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote saved ✓');}
     upsertCustomer(quoteData.customerName,quoteData.phone,quoteData.address); // fire-and-forget, doesn't block save
   }catch(e){toast('Error saving: '+e.message);}showLoading(false);
 }
@@ -759,8 +771,8 @@ function renderView(q){
   <div class="view-terms">${esc(q.terms).replace(/\n/g,'<br>')}</div>`;
 }
 
-function editCurrentQuote(){if(!currentQuote)return;editingQuoteId=currentQuote.id;window._pendingQuoteNo=currentQuote.quoteNo;document.getElementById('builder-quote-num').textContent=currentQuote.quoteNo;document.getElementById('cust-name').value=currentQuote.customerName||'';document.getElementById('cust-phone').value=currentQuote.phone||'';document.getElementById('cust-address').value=currentQuote.address||'';document.getElementById('quote-date').value=currentQuote.date||todayStr();document.getElementById('delivery-date').value=currentQuote.deliveryDate||'';document.getElementById('terms-text').value=currentQuote.terms||'';document.getElementById('discount-val').value=currentQuote.discountVal||'';setDiscType(currentQuote.discountType||'flat');itemIdCounter=0;items=(currentQuote.items||[]).map(it=>({...it,id:++itemIdCounter}));renderItems();items.forEach(it=>calcItem(it.id));recalcTotals();showScreen('builder');}
-async function deleteCurrentQuote(){if(!currentQuote)return;if(!confirm(`Delete ${currentQuote.quoteNo}?`))return;showLoading(true);try{await db.collection('lathepro_quotes').doc(currentQuote.id).delete();toast('Deleted');currentQuote=null;goList();}catch(e){toast('Error');}showLoading(false);}
+function editCurrentQuote(){if(!currentQuote)return;editingQuoteId=currentQuote.id;window._pendingQuoteNo=currentQuote.quoteNo;document.getElementById('builder-quote-num').textContent=currentQuote.quoteNo;document.getElementById('cust-name').value=currentQuote.customerName||'';document.getElementById('cust-phone').value=currentQuote.phone||'';document.getElementById('cust-address').value=currentQuote.address||'';document.getElementById('quote-date').value=currentQuote.date||todayStr();document.getElementById('delivery-date').value=currentQuote.deliveryDate||'';document.getElementById('terms-text').value=currentQuote.terms||'';document.getElementById('discount-val').value=currentQuote.discountVal||'';setDiscType(currentQuote.discountType||'flat');itemIdCounter=0;items=(currentQuote.items||[]).map(it=>({...it,photos:[...(it.photos||[])],id:++itemIdCounter}));renderItems();items.forEach(it=>calcItem(it.id));recalcTotals();showScreen('builder');}
+async function deleteCurrentQuote(){if(!currentQuote)return;if(!confirm(`Delete ${currentQuote.quoteNo}?`))return;showLoading(true);try{const photos=quotePhotos(currentQuote);await db.collection('lathepro_quotes').doc(currentQuote.id).delete();cleanupUnusedPhotos(photos);toast('Deleted');currentQuote=null;goList();}catch(e){toast('Error');}showLoading(false);}
 
 async function duplicateCurrentQuote(){
   if(!currentQuote)return;
