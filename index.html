@@ -603,7 +603,7 @@ function renderList(){const el=document.getElementById('quotes-list'),cnt=docume
 
 // BUILDER
 let itemIdCounter=0;
-function newQuote(){editingQuoteId=null;items=[];discountType='flat';['cust-name','cust-phone','cust-address','discount-val'].forEach(id=>document.getElementById(id).value='');document.getElementById('quote-date').value=todayStr();document.getElementById('delivery-date').value='';document.getElementById('terms-text').value=`1. GST will be charged extra as applicable.\n2. 50% advance required before work commencement.\n3. Balance 50% to be paid before dispatch from factory.\n4. Delivery subject to material availability.\n5. Prices valid for 15 days from quote date.`;setDiscType('flat');document.getElementById('items-container').innerHTML='';getNextQuoteNo().then(no=>{document.getElementById('builder-quote-num').textContent=no;window._pendingQuoteNo=no;});const draft=checkForDraft();if(draft&&!draft.editingId){document.getElementById('draft-banner').classList.add('show');addItem();}else{document.getElementById('draft-banner').classList.remove('show');addItem();}setAutosaveStatus('idle');showScreen('builder');}
+function newQuote(){editingQuoteId=null;currentQuote=null;items=[];discountType='flat';['cust-name','cust-phone','cust-address','discount-val'].forEach(id=>document.getElementById(id).value='');document.getElementById('quote-date').value=todayStr();document.getElementById('delivery-date').value='';document.getElementById('terms-text').value=`1. GST will be charged extra as applicable.\n2. 50% advance required before work commencement.\n3. Balance 50% to be paid before dispatch from factory.\n4. Delivery subject to material availability.\n5. Prices valid for 15 days from quote date.`;setDiscType('flat');document.getElementById('items-container').innerHTML='';getNextQuoteNo().then(no=>{document.getElementById('builder-quote-num').textContent=no;window._pendingQuoteNo=no;});const draft=checkForDraft();if(draft&&!draft.editingId){document.getElementById('draft-banner').classList.add('show');addItem();}else{document.getElementById('draft-banner').classList.remove('show');addItem();}setAutosaveStatus('idle');showScreen('builder');}
 async function getNextQuoteNo(){try{const snap=await db.collection('lathepro_quotes').orderBy('quoteNo','desc').get();if(snap.empty)return'LP-001';const last=snap.docs[0].data().quoteNo||'LP-000';return'LP-'+String(parseInt(last.replace('LP-',''))+1).padStart(3,'0');}catch{return'LP-'+Date.now().toString().slice(-4);}}
 
 function addItem(){const id=++itemIdCounter;items.push({id,name:'',woodType:'Teak',length:'',width:'',thickness:'',qty:1,woodRate:DEFAULT_WOOD_RATE,latheRate:DEFAULT_LATHE_RATE,notes:'',internalNotes:'',photos:[]});renderItems();}
@@ -745,8 +745,8 @@ function refreshPhotosGrid(itemId){const item=items.find(i=>i.id===itemId);if(!i
 // SAVE
 async function saveQuote(){
   const custName=document.getElementById('cust-name').value.trim();
-  if(!custName){toast('Please enter customer name');return;}
-  if(!items.length){toast('Please add at least one item');return;}
+  if(!custName){toast('Please enter customer name');return false;}
+  if(!items.length){toast('Please add at least one item');return false;}
   items.forEach(it=>calcItem(it.id));const totals=recalcTotals();
   const discVal=parseFloat(document.getElementById('discount-val').value)||0;
   const quoteData={quoteNo:window._pendingQuoteNo||editingQuoteId,customerName:custName,phone:document.getElementById('cust-phone').value.trim(),address:document.getElementById('cust-address').value.trim(),date:document.getElementById('quote-date').value,deliveryDate:document.getElementById('delivery-date').value,terms:document.getElementById('terms-text').value,discountType,discountVal:discVal,discountAmount:totals.discAmount,subtotalWood:totals.subtotalWood,subtotalLathe:totals.subtotalLathe,subtotal:totals.subtotal,grandTotal:totals.grandTotal,
@@ -756,7 +756,7 @@ async function saveQuote(){
   showLoading(true);
   try{if(editingQuoteId){const prevSnap=await db.collection('lathepro_quotes').doc(editingQuoteId).get();const prevPhotos=prevSnap.exists?quotePhotos(prevSnap.data()):[];await db.collection('lathepro_quotes').doc(editingQuoteId).update(quoteData);const keep=new Set(quotePhotos(quoteData));cleanupUnusedPhotos(prevPhotos.filter(u=>!keep.has(u)));currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote updated ✓');}else{quoteData.quoteNo=window._pendingQuoteNo;const ref=await db.collection('lathepro_quotes').add(quoteData);editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote saved ✓');}
     upsertCustomer(quoteData.customerName,quoteData.phone,quoteData.address); // fire-and-forget, doesn't block save
-  }catch(e){toast('Error saving: '+e.message);}showLoading(false);
+  }catch(e){toast('Error saving: '+e.message);showLoading(false);return false;}showLoading(false);return true;
 }
 
 // VIEW
@@ -801,7 +801,7 @@ async function duplicateCurrentQuote(){
 // PREVIEW MODAL
 async function showPreview(mode){
   _previewMode=mode;
-  if(document.getElementById('builder-screen').classList.contains('active')){await saveQuote();if(!currentQuote)return;}
+  if(document.getElementById('builder-screen').classList.contains('active')){if(!(await saveQuote())||!currentQuote)return;}
   const q=currentQuote;if(!q)return;
   document.getElementById('preview-modal-title').textContent=mode==='job'?'Job Sheet Preview':'Quote Preview';
   document.getElementById('preview-doc').innerHTML=mode==='job'?buildJobPreviewHTML(q):buildQuotePreviewHTML(q);
