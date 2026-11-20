@@ -648,8 +648,8 @@ function renderItemCard(item,idx){
       <div class="form-group"><label>Length (in)</label><input type="number" placeholder="36" min="0" step="0.5" value="${item.length||''}" oninput="updateItem(${item.id},'length',this.value)"></div>
       <div class="form-group"><label>Width (in)</label><input type="number" placeholder="6" min="0" step="0.5" value="${item.width||''}" oninput="updateItem(${item.id},'width',this.value)"></div>
       <div class="form-group"><label>Thickness (in)</label><input type="number" placeholder="6" min="0" step="0.5" value="${item.thickness||''}" oninput="updateItem(${item.id},'thickness',this.value)"></div>
-      <div class="form-group"><label>Wood ₹/CFT</label><input type="number" placeholder="${DEFAULT_WOOD_RATE}" value="${item.woodRate||DEFAULT_WOOD_RATE}" oninput="updateItem(${item.id},'woodRate',this.value)"></div>
-      <div class="form-group"><label>Lathe ₹/ft×in</label><input type="number" placeholder="${DEFAULT_LATHE_RATE}" value="${item.latheRate||DEFAULT_LATHE_RATE}" oninput="updateItem(${item.id},'latheRate',this.value)"></div>
+      <div class="form-group"><label>Wood ₹/CFT</label><input type="number" placeholder="${DEFAULT_WOOD_RATE}" value="${item.woodRate??DEFAULT_WOOD_RATE}" oninput="updateItem(${item.id},'woodRate',this.value)"></div>
+      <div class="form-group"><label>Lathe ₹/ft×in</label><input type="number" placeholder="${DEFAULT_LATHE_RATE}" value="${item.latheRate??DEFAULT_LATHE_RATE}" oninput="updateItem(${item.id},'latheRate',this.value)"></div>
     </div>
     <div class="calc-bar" id="calc-${item.id}">
       <div class="calc-chip"><span class="calc-chip-label">CFT</span><span class="calc-chip-val" id="cft-${item.id}">—</span></div>
@@ -713,8 +713,8 @@ function calcItem(id){
 
 function recalcTotals(){
   const sW=items.reduce((a,i)=>a+(i._woodTotal||0),0),sL=items.reduce((a,i)=>a+(i._latheTotal||0),0),sub=sW+sL;
-  const dv=parseFloat(document.getElementById('discount-val')?.value)||0;
-  const da=discountType==='flat'?dv:sub*dv/100,grand=Math.max(0,sub-da);
+  const dv=Math.max(0,parseFloat(document.getElementById('discount-val')?.value)||0);
+  const da=discountType==='flat'?Math.min(dv,sub):sub*Math.min(dv,100)/100,grand=Math.max(0,sub-da);
   document.getElementById('totals-breakdown').innerHTML=`<div class="totals-row"><span class="lbl">Wood Subtotal</span><span class="val">₹${fmt(sW)}</span></div><div class="totals-row"><span class="lbl">Lathe Subtotal</span><span class="val">₹${fmt(sL)}</span></div><div class="totals-row"><span class="lbl">Subtotal</span><span class="val">₹${fmt(sub)}</span></div>${da>0?`<div class="totals-row"><span class="lbl">Discount${discountType==='pct'?` (${dv}%)`:''}</span><span class="val" style="color:var(--red);">−₹${fmt(da)}</span></div>`:''}<div class="totals-grand"><span class="lbl">Grand Total</span><span class="val">₹${fmt(grand)}</span></div>`;
   return{subtotalWood:sW,subtotalLathe:sL,subtotal:sub,discAmount:da,grandTotal:grand};
 }
