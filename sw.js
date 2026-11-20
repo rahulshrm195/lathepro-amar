@@ -1,10 +1,10 @@
 // ══════════════════════════════════════════════════
 //   LathePro Service Worker
 //   Amar Furniture — AppCentrik
-//   Version: 1.0.29
+//   Version: 1.0.30
 // ══════════════════════════════════════════════════
 
-const APP_VERSION = '1.0.29';
+const APP_VERSION = '1.0.30';
 const CACHE_NAME = 'lathepro-v' + APP_VERSION;
 
 const STATIC_ASSETS = [
@@ -13,7 +13,13 @@ const STATIC_ASSETS = [
   '/manifest.json',
   'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  // Firebase SDK — without these cached the app can't start offline
+  'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js',
+  'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js',
 ];
+const CDN_HOSTS = ['cdnjs.cloudflare.com', 'www.gstatic.com'];
 
 // ── INSTALL: cache all static assets ──
 self.addEventListener('install', event => {
@@ -80,12 +86,13 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // For CDN assets (jsPDF etc) — cache first, update in background
-  if (url.hostname === 'cdnjs.cloudflare.com') {
+  // For versioned CDN assets (jsPDF, Firebase SDK) — cache first, update in background
+  if (CDN_HOSTS.includes(url.hostname)) {
     event.respondWith(
       caches.match(event.request).then(cached => {
         const networkFetch = fetch(event.request).then(response => {
-          if (response && response.ok) {
+          // <script> tags fetch cross-origin as no-cors, giving 'opaque' responses (status 0)
+          if (response && (response.ok || response.type === 'opaque')) {
             const clone = response.clone(); // clone before the body is consumed
             caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           }
@@ -110,10 +117,10 @@ self.addEventListener('fetch', event => {
       })
       .catch(() => {
         // Offline fallback
-        return caches.match(event.request).then(cached => {
+        return caches.match(event.request, { ignoreSearch: true }).then(cached => {
           if (cached) return cached;
           // If no cache and offline, return the main app shell
-          return caches.match('/') || caches.match('/index.html');
+          return caches.match('/').then(r => r || caches.match('/index.html'));
         });
       })
   );

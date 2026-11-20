@@ -329,7 +329,7 @@ textarea{resize:vertical;min-height:60px;}
 </head>
 <body>
 
-<div class="offline-banner" id="offline-banner">📡 You are offline — viewing cached data</div>
+<div class="offline-banner" id="offline-banner">📡 Offline — you can keep working; changes sync when you're back online</div>
 
 <!-- LOGIN -->
 <div id="login-screen" class="screen active">
@@ -352,7 +352,7 @@ textarea{resize:vertical;min-height:60px;}
 <!-- LIST -->
 <div id="list-screen" class="screen">
   <div class="app-header">
-    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.29</div></div>
+    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.30</div></div>
     <div class="header-actions">
       <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
       <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
@@ -372,7 +372,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.29</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.30</div></div>
     </div>
     <div class="header-actions">
       <div class="autosave-indicator" id="autosave-indicator"><div class="autosave-dot"></div><span id="autosave-text">draft</span></div>
@@ -450,7 +450,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.29</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.30</div></div>
     </div>
     <div class="view-actions">
       <button class="btn btn-outline btn-sm" onclick="editCurrentQuote()">✏️ Edit</button>
@@ -499,8 +499,22 @@ textarea{resize:vertical;min-height:60px;}
 const firebaseConfig={apiKey:"AIzaSyARVv1P0ssuKzfpS1M59AB-rG3riIWh-2c",authDomain:"amar-furniture-e4782.firebaseapp.com",projectId:"amar-furniture-e4782",storageBucket:"amar-furniture-e4782.firebasestorage.app",messagingSenderId:"1084205045390",appId:"1:1084205045390:web:e3c782b318e872629c5bdf"};
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore(),auth=firebase.auth(),storage=firebase.storage();
+// OFFLINE: keep a local copy of Firestore data so quotes load and save without internet.
+// Writes made offline are queued on the device and synced automatically when back online.
+db.enablePersistence({synchronizeTabs:true}).catch(e=>console.warn('Offline cache unavailable:',e.code||e));
+// Firestore write promises only resolve once the server confirms. Offline (or on a dead connection)
+// that never happens, so don't block the UI: the write is already applied to the local cache.
+// Resolves true if the server confirmed, false if it was queued for later sync.
+const WRITE_WAIT_MS=6000;
+let _netStalled=false; // set when the server stops answering although the device reports online
+function commitWrite(p){
+  p.then(()=>{_netStalled=false;},e=>{console.error('Write failed',e);toast('Sync failed: '+(e.message||e.code));});
+  if(!navigator.onLine||_netStalled)return Promise.resolve(false);
+  return Promise.race([p.then(()=>true),new Promise(r=>setTimeout(()=>{_netStalled=true;r(false);},WRITE_WAIT_MS))]);
+}
+function savedToast(msg,synced){toast(synced?msg:msg.replace(' ✓','')+' offline — will sync ✓');}
 
-const APP_VERSION='1.0.29',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
+const APP_VERSION='1.0.30',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
 const WOOD_TYPES=["Teak","Khair","Sagwan","Mango","Sheesham","Other"];
 const DEFAULT_WOOD_RATE=5500,DEFAULT_LATHE_RATE=100;
 const ALLOWED_EMAIL='rahulshrm195@gmail.com';
@@ -592,7 +606,7 @@ async function upsertCustomer(name,phone,address){
   const id=phone&&phone.trim()?phone.trim().replace(/[^0-9+]/g,''):name.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-');
   if(!id)return;
   try{
-    await db.collection('lathepro_customers').doc(id).set({name:name.trim(),phone:(phone||'').trim(),address:(address||'').trim(),updatedAt:new Date().toISOString()},{merge:true});
+    commitWrite(db.collection('lathepro_customers').doc(id).set({name:name.trim(),phone:(phone||'').trim(),address:(address||'').trim(),updatedAt:new Date().toISOString()},{merge:true}));
     // refresh local cache so autocomplete is current without a full reload
     const idx=customersCache.findIndex(c=>c.id===id);
     const rec={id,name:name.trim(),phone:(phone||'').trim(),address:(address||'').trim()};
@@ -613,16 +627,17 @@ async function getNextQuoteNo(){try{return formatQuoteNo(await maxExistingQuoteN
 // Allocate a unique number atomically via a counter doc, so two devices can't get the same one
 async function allocateQuoteNo(){
   const maxExisting=await maxExistingQuoteNum();
+  if(!navigator.onLine||_netStalled)return formatQuoteNo(maxExisting+1); // transactions need the server
   try{
     const ref=db.collection('lathepro_meta').doc('counters');
-    const n=await db.runTransaction(async tx=>{
+    const n=await Promise.race([db.runTransaction(async tx=>{
       const snap=await tx.get(ref);
       const next=Math.max(snap.exists?(snap.data().quoteSeq||0):0,maxExisting)+1;
       tx.set(ref,{quoteSeq:next},{merge:true});
       return next;
-    });
+    }),new Promise((_,rej)=>setTimeout(()=>rej(new Error('counter timeout')),WRITE_WAIT_MS))]);
     return formatQuoteNo(n);
-  }catch(e){console.warn('Counter unavailable, using max+1',e);return formatQuoteNo(maxExisting+1);}
+  }catch(e){if(e.message==='counter timeout')_netStalled=true;console.warn('Counter unavailable, using max+1',e);return formatQuoteNo(maxExisting+1);}
 }
 
 function addItem(){const id=++itemIdCounter;items.push({id,name:'',woodType:'Teak',length:'',width:'',thickness:'',qty:1,woodRate:DEFAULT_WOOD_RATE,latheRate:DEFAULT_LATHE_RATE,notes:'',internalNotes:'',photos:[]});renderItems();}
@@ -724,6 +739,7 @@ function setDiscType(type){discountType=type;document.getElementById('disc-flat-
 async function addPhotos(itemId,input){
   const item=items.find(i=>i.id===itemId);if(!item)return;
   const files=Array.from(input.files);if(!files.length)return;
+  if(!navigator.onLine){toast('Photos need internet — add them when back online');input.value='';return;}
   showLoading(true);
   try{
     for(const file of files){
@@ -749,7 +765,7 @@ function quotePhotos(q){return (q&&q.items||[]).flatMap(it=>it.photos||[]);}
 // Delete storage files from `urls` that no saved quote references any more (best effort)
 async function cleanupUnusedPhotos(urls){
   const candidates=[...new Set(urls)].filter(u=>u&&u.includes('firebasestorage'));
-  if(!candidates.length)return;
+  if(!candidates.length||!navigator.onLine)return; // leftovers are harmless; cleaned next time
   try{
     const snap=await db.collection('lathepro_quotes').get();
     const used=new Set(snap.docs.flatMap(d=>quotePhotos(d.data())));
@@ -773,7 +789,7 @@ async function saveQuote(){
     updatedAt:new Date().toISOString()};
   if(!editingQuoteId)quoteData.createdAt=new Date().toISOString();
   showLoading(true);
-  try{if(editingQuoteId){const prevSnap=await db.collection('lathepro_quotes').doc(editingQuoteId).get();const prevPhotos=prevSnap.exists?quotePhotos(prevSnap.data()):[];await db.collection('lathepro_quotes').doc(editingQuoteId).update(quoteData);const keep=new Set(quotePhotos(quoteData));cleanupUnusedPhotos(prevPhotos.filter(u=>!keep.has(u)));currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote updated ✓');}else{quoteData.quoteNo=await allocateQuoteNo();window._pendingQuoteNo=quoteData.quoteNo;document.getElementById('builder-quote-num').textContent=quoteData.quoteNo;const ref=await db.collection('lathepro_quotes').add(quoteData);editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');toast('Quote saved ✓');}
+  try{if(editingQuoteId){const prevSnap=await db.collection('lathepro_quotes').doc(editingQuoteId).get();const prevPhotos=prevSnap.exists?quotePhotos(prevSnap.data()):[];const synced=await commitWrite(db.collection('lathepro_quotes').doc(editingQuoteId).update(quoteData));const keep=new Set(quotePhotos(quoteData));cleanupUnusedPhotos(prevPhotos.filter(u=>!keep.has(u)));currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');savedToast('Quote updated ✓',synced);}else{quoteData.quoteNo=await allocateQuoteNo();window._pendingQuoteNo=quoteData.quoteNo;document.getElementById('builder-quote-num').textContent=quoteData.quoteNo;const ref=db.collection('lathepro_quotes').doc();const synced=await commitWrite(ref.set(quoteData));editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');savedToast('Quote saved ✓',synced);}
     upsertCustomer(quoteData.customerName,quoteData.phone,quoteData.address); // fire-and-forget, doesn't block save
   }catch(e){toast('Error saving: '+e.message);showLoading(false);return false;}showLoading(false);return true;
 }
@@ -791,7 +807,7 @@ function renderView(q){
 }
 
 function editCurrentQuote(){if(!currentQuote)return;editingQuoteId=currentQuote.id;window._pendingQuoteNo=currentQuote.quoteNo;document.getElementById('builder-quote-num').textContent=currentQuote.quoteNo;document.getElementById('cust-name').value=currentQuote.customerName||'';document.getElementById('cust-phone').value=currentQuote.phone||'';document.getElementById('cust-address').value=currentQuote.address||'';document.getElementById('quote-date').value=currentQuote.date||todayStr();document.getElementById('delivery-date').value=currentQuote.deliveryDate||'';document.getElementById('terms-text').value=currentQuote.terms||'';document.getElementById('discount-val').value=currentQuote.discountVal||'';setDiscType(currentQuote.discountType||'flat');itemIdCounter=0;items=(currentQuote.items||[]).map(it=>({...it,photos:[...(it.photos||[])],id:++itemIdCounter}));renderItems();items.forEach(it=>calcItem(it.id));recalcTotals();showScreen('builder');}
-async function deleteCurrentQuote(){if(!currentQuote)return;if(!confirm(`Delete ${currentQuote.quoteNo}?`))return;showLoading(true);try{const photos=quotePhotos(currentQuote);await db.collection('lathepro_quotes').doc(currentQuote.id).delete();cleanupUnusedPhotos(photos);toast('Deleted');currentQuote=null;goList();}catch(e){toast('Error');}showLoading(false);}
+async function deleteCurrentQuote(){if(!currentQuote)return;if(!confirm(`Delete ${currentQuote.quoteNo}?`))return;showLoading(true);try{const photos=quotePhotos(currentQuote);const synced=await commitWrite(db.collection('lathepro_quotes').doc(currentQuote.id).delete());cleanupUnusedPhotos(photos);savedToast('Deleted ✓',synced);currentQuote=null;goList();}catch(e){toast('Error');}showLoading(false);}
 
 async function duplicateCurrentQuote(){
   if(!currentQuote)return;
@@ -807,8 +823,8 @@ async function duplicateCurrentQuote(){
       updatedAt:new Date().toISOString()
     };
     delete copy.id;
-    const ref=await db.collection('lathepro_quotes').add(copy);
-    toast('Duplicated as '+newNo+' ✓');
+    const ref=db.collection('lathepro_quotes').doc();const synced=await commitWrite(ref.set(copy));
+    savedToast('Duplicated as '+newNo+' ✓',synced);
     // Open the new duplicate
     currentQuote={id:ref.id,...copy};
     renderView(currentQuote);
@@ -1066,7 +1082,7 @@ if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.se
 
 // ONLINE/OFFLINE
 function updateOnlineStatus(){document.getElementById('offline-banner').classList.toggle('show',!navigator.onLine);}
-window.addEventListener('online',updateOnlineStatus);window.addEventListener('offline',updateOnlineStatus);updateOnlineStatus();
+window.addEventListener('online',()=>{_netStalled=false;updateOnlineStatus();toast('Back online — syncing…');db.waitForPendingWrites().then(()=>{toast('All changes synced ✓');if(document.getElementById('list-screen').classList.contains('active'))loadAll();}).catch(()=>{});});window.addEventListener('offline',updateOnlineStatus);updateOnlineStatus();
 
 // INSTALL
 let _dip=null;
