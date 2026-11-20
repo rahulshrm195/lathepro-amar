@@ -1056,7 +1056,7 @@ function pdfFmt(n){
   const formatted=num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
   return 'Rs.'+formatted;
 }
-function todayStr(){return new Date().toISOString().split('T')[0];}
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');} // local date, not UTC
 function formatDate(str){if(!str)return'';try{return new Date(str).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}catch{return str;}}
 function showLoading(show){document.getElementById('loading').classList.toggle('show',show);}
 let _tt;function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3000);}
