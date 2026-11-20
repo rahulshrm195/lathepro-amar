@@ -1,0 +1,257 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== amarfurniture.in website =====
+    function isSiteAdmin() {
+      return request.auth != null && request.auth.token.email_verified == true
+        && request.auth.token.email in ['rahulshrm195@gmail.com'];
+    }
+    match /website_products/{id} {
+      allow read: if resource.data.visible == true || isSiteAdmin();
+      allow write: if isSiteAdmin();
+    }
+    match /website_projects/{id} {
+      allow read: if resource.data.visible == true || isSiteAdmin();
+      allow write: if isSiteAdmin();
+    }
+    match /website_reviews/{id} {
+      allow read: if resource.data.visible == true || isSiteAdmin();
+      allow write: if isSiteAdmin();
+    }
+    match /website_settings/{doc} {
+      allow read: if true;
+      allow write: if isSiteAdmin();
+    }
+    match /website_leads/{id} {
+      allow create: if request.resource.data.status == 'new'
+        && request.resource.data.consent == true
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+        && request.resource.data.phone is string && request.resource.data.phone.matches('^[6-9][0-9]{9}$')
+        && request.resource.data.keys().hasOnly(['type','name','phone','segment','needs','date','window','area','qty','size','message','consent','status','page','createdAt']);
+      allow read, update, delete: if isSiteAdmin();
+    }
+    match /website_team/{id} {
+      allow read: if resource.data.visible == true
+        || (request.auth != null && request.auth.token.email == 'rahulshrm195@gmail.com');
+      allow write: if request.auth != null && request.auth.token.email == 'rahulshrm195@gmail.com';
+    }
+
+    // ===== end website =====
+
+
+    // ======================= Shared helpers (StockPro roles) =======================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function myUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function myRole() {
+      return isSignedIn() ? myUser().role : null;
+    }
+    function isAdmin() {
+      return isSignedIn() && myRole() == 'admin';
+    }
+    function isManager() {
+      return isSignedIn() && myRole() == 'manager';
+    }
+    function isStaff() {
+      return isAdmin() || isManager();
+    }
+    function isBootstrapAdmin() {
+      return isSignedIn()
+        && request.auth.token.email == 'rahulshrm195@gmail.com'
+        && request.resource.data.role == 'admin';
+    }
+
+    // NOTE: the umbra read rules below are unchanged, but `resource.data.customerMobile is string`
+    // is true for every saved document, so ANYONE (even signed out) can read all orders and
+    // inquiries with names and mobile numbers. Tighten these once you've checked how the
+    // website's order-tracking page reads them.
+    match /umbra_orders/{orderId} {
+      allow create: if
+        request.resource.data.keys().hasAll([
+          'orderNo', 'customerName', 'customerMobile',
+          'spec', 'dimensions', 'pricing', 'status', 'createdAt'
+        ])
+        && request.resource.data.customerName is string
+        && request.resource.data.customerName.size() >= 2
+        && request.resource.data.customerName.size() <= 80
+        && request.resource.data.customerMobile is string
+        && request.resource.data.customerMobile.matches('^[0-9]{11,13}$')
+        && request.resource.data.orderNo is string
+        && request.resource.data.orderNo.matches('^AMR-UMB-[A-Z0-9]+$')
+        && request.resource.data.status == 'new'
+        && request.resource.data.spec.wood in ['Khair', 'Teak']
+        && request.resource.data.spec.height in [1, 1.5]
+        && request.resource.data.spec.carve is bool
+        && request.resource.data.spec.polish is bool
+        && request.resource.data.dimensions.L is number
+        && request.resource.data.dimensions.L > 0
+        && request.resource.data.dimensions.L <= 600
+        && request.resource.data.dimensions.W is number
+        && request.resource.data.dimensions.W > 0
+        && request.resource.data.dimensions.W <= 60
+        && request.resource.data.pricing.subtotal is number
+        && request.resource.data.pricing.subtotal > 0
+        && request.resource.data.pricing.subtotal < 1000000
+        && (
+          !('customerNote' in request.resource.data)
+          || request.resource.data.customerNote is string
+          && request.resource.data.customerNote.size() <= 500
+        );
+      allow read: if request.auth != null
+        || resource.data.customerMobile is string;
+      allow update: if request.auth != null
+        && request.auth.token.email == 'rahulshrm195@gmail.com';
+      allow delete: if request.auth != null
+        && request.auth.token.email == 'rahulshrm195@gmail.com';
+    }
+    match /umbra_inquiries/{inquiryId} {
+      allow create: if
+        request.resource.data.customerName is string
+        && request.resource.data.customerName.size() >= 2
+        && request.resource.data.customerName.size() <= 80
+        && request.resource.data.customerMobile is string
+        && request.resource.data.customerMobile.matches('^[0-9]{11,13}$');
+      allow read: if request.auth != null
+        || resource.data.customerMobile is string;
+      allow update: if request.auth != null
+        && request.auth.token.email == 'rahulshrm195@gmail.com';
+      allow delete: if request.auth != null
+        && request.auth.token.email == 'rahulshrm195@gmail.com';
+    }
+
+    // ======================= LathePro =======================
+    function isLatheOwner() {
+      return request.auth != null && request.auth.token.email == 'rahulshrm195@gmail.com';
+    }
+    function latheVendorPath() {
+      return /databases/$(database)/documents/lathepro_vendors/$(request.auth.uid);
+    }
+    // Any B2B vendor login (active or not). Used to keep vendors out of other apps' data.
+    function isLatheVendor() {
+      return request.auth != null && exists(latheVendorPath());
+    }
+    function isActiveLatheVendor() {
+      return isLatheVendor() && get(latheVendorPath()).data.active == true;
+    }
+    // A vendor quote must belong to the vendor and carry exactly their B2B discount
+    function validVendorQuote() {
+      let d = request.resource.data;
+      return d.vendorUid == request.auth.uid
+        && d.discountType == 'pct'
+        && d.discountVal == get(latheVendorPath()).data.discountPct
+        && d.grandTotal is number
+        && d.items is list && d.items.size() <= 100;
+    }
+
+    match /lathepro_quotes/{quoteId} {
+      allow read, write: if isLatheOwner();
+    }
+    match /lathepro_bills/{billId} {
+      allow read, write: if isLatheOwner();
+    }
+    match /lathepro_payments/{paymentId} {
+      allow read, write: if isLatheOwner();
+    }
+    match /lathepro_customers/{customerId} {
+      allow read, write: if isLatheOwner();
+    }
+    // Quote-number counter
+    match /lathepro_meta/{docId} {
+      allow read, write: if isLatheOwner();
+    }
+    // Rate card (wood ₹/CFT per wood type + lathe rate): active vendors can read it
+    match /lathepro_settings/{docId} {
+      allow read: if isLatheOwner() || isActiveLatheVendor();
+      allow write: if isLatheOwner();
+    }
+    // B2B vendor profiles — created/edited only by the owner; a vendor can read their own
+    match /lathepro_vendors/{uid} {
+      allow read: if isLatheOwner() || (request.auth != null && request.auth.uid == uid);
+      allow write: if isLatheOwner();
+    }
+    // B2B vendor quotes — each vendor sees only their own; the owner can read and delete all
+    match /lathepro_vendor_quotes/{quoteId} {
+      allow read: if isLatheOwner()
+        || (isActiveLatheVendor() && resource.data.vendorUid == request.auth.uid);
+      allow create: if isActiveLatheVendor() && validVendorQuote();
+      allow update: if isActiveLatheVendor()
+        && resource.data.vendorUid == request.auth.uid
+        && validVendorQuote();
+      allow delete: if isLatheOwner()
+        || (isActiveLatheVendor() && resource.data.vendorUid == request.auth.uid);
+    }
+    // ======================= end LathePro =======================
+
+    // NOTE: these owner-only wood_* rules have no effect — the WoodPro rules further down match
+    // the same collections and allow any signed-in user (Firestore allows if ANY rule allows).
+    match /wood_costings/{id} {
+      allow read, write: if request.auth != null
+                         && request.auth.token.email == 'rahulshrm195@gmail.com';
+    }
+    match /wood_quotes/{id} {
+      allow read, write: if request.auth != null
+                         && request.auth.token.email == 'rahulshrm195@gmail.com';
+    }
+    match /wood_settings/{id} {
+      allow read, write: if request.auth != null
+                         && request.auth.token.email == 'rahulshrm195@gmail.com';
+    }
+    // WoodPro collections — any signed-in user EXCEPT LathePro B2B vendors
+    match /wood_quotes/{doc} {
+      allow read, write: if request.auth != null && !isLatheVendor();
+    }
+    match /wood_costings/{doc} {
+      allow read, write: if request.auth != null && !isLatheVendor();
+    }
+    match /wood_settings/{doc} {
+      allow read, write: if request.auth != null && !isLatheVendor();
+    }
+    // WorkPro collections — any signed-in user EXCEPT LathePro B2B vendors
+    match /wp_projects/{doc} {
+      allow read, write: if request.auth != null && !isLatheVendor();
+    }
+    match /wp_carpenters/{doc} {
+      allow read, write: if request.auth != null && !isLatheVendor();
+    }
+    // QuotePro — Rahul only
+    match /quotes/{quoteId}   { allow read, write: if request.auth != null && request.auth.token.email == 'rahulshrm195@gmail.com'; }
+    match /clients/{clientId} { allow read, write: if request.auth != null && request.auth.token.email == 'rahulshrm195@gmail.com'; }
+    match /settings/{docId}   { allow read, write: if request.auth != null && request.auth.token.email == 'rahulshrm195@gmail.com'; }
+    match /meta/{docId}       { allow read, write: if request.auth != null && request.auth.token.email == 'rahulshrm195@gmail.com'; }
+
+    // ======================= StockPro collections — new =======================
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if isAdmin() || (request.auth.uid == uid && isBootstrapAdmin());
+      allow update, delete: if isAdmin();
+    }
+    match /items/{itemId} {
+      allow read: if isStaff();
+      allow create: if isAdmin();
+      allow update: if isAdmin()
+        || (isManager() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['currentStock', 'updatedAt']));
+      allow delete: if isAdmin();
+    }
+    match /itemCosts/{itemId} {
+      allow read, write: if isAdmin();
+    }
+    match /categoryTemplates/{templateId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+    match /movements/{movementId} {
+      allow read: if isAdmin() || (isManager() && resource.data.createdBy == request.auth.uid);
+      allow create: if isStaff() && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if false;
+    }
+    match /projects/{projectId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow update, delete: if isAdmin();
+    }
+  }
+}

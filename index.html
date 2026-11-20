@@ -25,6 +25,19 @@
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
 ::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-track{background:var(--bg);} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 .screen{display:none;min-height:100vh;} .screen.active{display:flex;flex-direction:column;}
+/* B2B roles: owner sees everything; vendors get a restricted UI */
+body.role-vendor .owner-only{display:none!important;}
+body:not(.role-vendor) .vendor-only{display:none!important;}
+#view-screen.readonly .edit-act{display:none!important;}
+.vendor-badge{font-size:12px;color:var(--text2);margin-top:2px;}
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+.vendor-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--border);}
+.vendor-row:last-child{border-bottom:none;}
+.vendor-row .vr-name{font-weight:600;color:var(--text);}
+.vendor-row .vr-meta{font-size:12px;color:var(--text3);}
+.vendor-row.inactive .vr-name{text-decoration:line-through;color:var(--text3);}
+.vr-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.vr-actions input{width:70px;}
 
 /* LOGIN */
 #login-screen{align-items:center;justify-content:center;background:linear-gradient(135deg,#fdf8ef,#f0e8d0);padding:20px;}
@@ -337,8 +350,8 @@ textarea{resize:vertical;min-height:60px;}
     <div class="login-logo">LathePro</div>
     <div class="login-sub">Amar Furniture</div>
     <div class="login-field">
-      <label>Email</label>
-      <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email">
+      <label>Email or User ID</label>
+      <input type="text" id="login-email" placeholder="email or user ID" autocomplete="username" autocapitalize="none" spellcheck="false">
     </div>
     <div class="login-field">
       <label>Password</label>
@@ -352,15 +365,16 @@ textarea{resize:vertical;min-height:60px;}
 <!-- LIST -->
 <div id="list-screen" class="screen">
   <div class="app-header">
-    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.30</div></div>
+    <div><div class="header-logo" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.1.0</div></div>
     <div class="header-actions">
       <button class="btn btn-gold" onclick="newQuote()">+ New Quote</button>
+      <button class="btn btn-outline btn-sm owner-only" onclick="openAdmin()">⚙ B2B Admin</button>
       <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
   <div class="list-body">
     <div class="list-top">
-      <div class="list-title">Quotes</div>
+      <div><div class="list-title">Quotes</div><div class="vendor-badge vendor-only" id="vendor-badge"></div></div>
       <div id="quotes-count" style="font-size:12px;color:var(--text3);"></div>
     </div>
     <div id="quotes-list"></div>
@@ -372,7 +386,7 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.30</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.1.0</div></div>
     </div>
     <div class="header-actions">
       <div class="autosave-indicator" id="autosave-indicator"><div class="autosave-dot"></div><span id="autosave-text">draft</span></div>
@@ -392,9 +406,9 @@ textarea{resize:vertical;min-height:60px;}
       </div>
 
       <div class="section-card">
-        <div class="section-title">Customer Details</div>
+        <div class="section-title" id="cust-section-title">Customer Details</div>
         <div class="form-row">
-          <div class="form-group" style="position:relative;"><label>Customer Name *</label><input type="text" id="cust-name" placeholder="e.g. Rajesh Sharma" oninput="onCustomerNameInput(this.value)" onblur="setTimeout(()=>hideCustomerDropdown('name'),150)" autocomplete="off"><div class="customer-dropdown" id="customer-name-dropdown"></div></div>
+          <div class="form-group" style="position:relative;"><label id="cust-name-label">Customer Name *</label><input type="text" id="cust-name" placeholder="e.g. Rajesh Sharma" oninput="onCustomerNameInput(this.value)" onblur="setTimeout(()=>hideCustomerDropdown('name'),150)" autocomplete="off"><div class="customer-dropdown" id="customer-name-dropdown"></div></div>
           <div class="form-group" style="position:relative;"><label>Phone</label><input type="tel" id="cust-phone" placeholder="+91 00000 00000" oninput="onCustomerPhoneInput(this.value)" onblur="setTimeout(()=>hideCustomerDropdown('phone'),150)" autocomplete="off"><div class="customer-dropdown" id="customer-phone-dropdown"></div></div>
         </div>
         <div class="form-row">
@@ -417,11 +431,14 @@ textarea{resize:vertical;min-height:60px;}
           <div class="section-title" style="margin-bottom:10px;">Summary</div>
           <div style="margin-bottom:10px;">
             <div style="font-size:10px;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;font-weight:600;margin-bottom:6px;">Discount</div>
+            <div class="owner-only">
             <div class="discount-toggle">
               <button class="disc-type-btn active" id="disc-flat-btn" onclick="setDiscType('flat')">₹ Flat</button>
               <button class="disc-type-btn" id="disc-pct-btn" onclick="setDiscType('pct')">% Percent</button>
             </div>
             <input type="number" id="discount-val" placeholder="0" min="0" oninput="recalcTotals()" style="width:160px;">
+            </div>
+            <div class="vendor-only badge badge-gold" id="vendor-disc-note"></div>
           </div>
           <div id="totals-breakdown"></div>
         </div>
@@ -438,7 +455,7 @@ textarea{resize:vertical;min-height:60px;}
         <div class="builder-actions">
           <button class="btn btn-gold" onclick="saveQuote()" style="flex:1;">💾 Save</button>
           <button class="btn btn-outline" onclick="showPreview('quote')" style="flex:1;">👁 Preview & PDF</button>
-          <button class="btn btn-outline" onclick="showPreview('job')" style="flex:1;">🔧 Job Sheet</button>
+          <button class="btn btn-outline owner-only" onclick="showPreview('job')" style="flex:1;">🔧 Job Sheet</button>
         </div>
       </div>
     </div>
@@ -450,18 +467,60 @@ textarea{resize:vertical;min-height:60px;}
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
-      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.0.30</div></div>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">LathePro</div><div class="version-tag" id="version-badge-1">v1.1.0</div></div>
     </div>
     <div class="view-actions">
-      <button class="btn btn-outline btn-sm" onclick="editCurrentQuote()">✏️ Edit</button>
+      <button class="btn btn-outline btn-sm edit-act" onclick="editCurrentQuote()">✏️ Edit</button>
       <button class="btn btn-outline btn-sm" onclick="showPreview('quote')">👁 Preview</button>
-      <button class="btn btn-outline btn-sm" onclick="showPreview('job')">🔧 Job Sheet</button>
+      <button class="btn btn-outline btn-sm owner-only" onclick="showPreview('job')">🔧 Job Sheet</button>
       <button class="btn btn-outline btn-sm" onclick="shareWhatsApp()">📱 WhatsApp</button>
-      <button class="btn btn-outline btn-sm" onclick="duplicateCurrentQuote()">⧉ Duplicate</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteCurrentQuote()">🗑</button>
+      <button class="btn btn-outline btn-sm edit-act" onclick="duplicateCurrentQuote()">⧉ Duplicate</button>
+      <button class="btn btn-danger btn-sm edit-act" onclick="deleteCurrentQuote()">🗑</button>
     </div>
   </div>
   <div class="view-body" id="view-body"></div>
+</div>
+
+<!-- B2B ADMIN (owner only) -->
+<div id="admin-screen" class="screen">
+  <div class="app-header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-outline btn-icon" onclick="goList()">←</button>
+      <div><div class="header-logo" style="font-size:17px;" onclick="goList()">B2B Admin</div><div class="version-tag" id="version-badge-admin">v</div></div>
+    </div>
+  </div>
+  <div class="list-body">
+    <div class="section-card">
+      <div class="section-title">Default Rates</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px;">Used for every new quote — yours and vendors'. Vendors always price at these rates minus their B2B discount.</div>
+      <div class="admin-grid" id="rates-form"></div>
+      <button class="btn btn-gold" style="margin-top:12px;" onclick="saveRates()">💾 Save Rates</button>
+    </div>
+    <div class="section-card">
+      <div class="section-title">Add B2B Vendor</div>
+      <div class="form-row">
+        <div class="form-group"><label>Business Name *</label><input type="text" id="nv-business" placeholder="e.g. Shree Furniture"></div>
+        <div class="form-group"><label>Contact Person</label><input type="text" id="nv-contact" placeholder="Name"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Phone</label><input type="tel" id="nv-phone" placeholder="+91"></div>
+        <div class="form-group"><label>B2B Discount %</label><input type="number" id="nv-discount" value="15" min="0" max="100"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>User ID * <span style="font-weight:400;color:var(--text3);">(letters, numbers, . _ -)</span></label><input type="text" id="nv-username" placeholder="e.g. shree" autocapitalize="none" spellcheck="false"></div>
+        <div class="form-group"><label>Password * <span style="font-weight:400;color:var(--text3);">(min 6)</span></label><input type="text" id="nv-password" placeholder="min 6 characters" autocomplete="new-password"></div>
+      </div>
+      <button class="btn btn-gold" onclick="createVendor()">+ Create Vendor Login</button>
+    </div>
+    <div class="section-card">
+      <div class="section-title">Vendors</div>
+      <div id="vendors-list"></div>
+    </div>
+    <div class="section-card">
+      <div class="section-title">Vendor Quotes</div>
+      <div id="vendor-quotes-list"></div>
+    </div>
+  </div>
 </div>
 
 <!-- PREVIEW MODAL -->
@@ -514,28 +573,38 @@ function commitWrite(p){
 }
 function savedToast(msg,synced){toast(synced?msg:msg.replace(' ✓','')+' offline — will sync ✓');}
 
-const APP_VERSION='1.0.30',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
+const APP_VERSION='1.1.0',DRAFT_KEY='lathepro_draft',DRAFT_DISMISS_KEY='lathepro_install_dismissed';
 const WOOD_TYPES=["Teak","Khair","Sagwan","Mango","Sheesham","Other"];
 const DEFAULT_WOOD_RATE=5500,DEFAULT_LATHE_RATE=100;
 const ALLOWED_EMAIL='rahulshrm195@gmail.com';
+// ── B2B ──
+// Vendors sign in with a plain user ID; it maps to a Firebase email on this domain (never emailed).
+const VENDOR_EMAIL_DOMAIN='b2b.lathepro.appcentrik.in';
+const DEFAULT_B2B_DISCOUNT=15;
+const DEFAULT_VENDOR_TERMS=`1. B2B rates as per Amar Furniture default rate card.\n2. GST will be charged extra as applicable.\n3. Prices valid for 15 days from quote date.\n4. Delivery subject to material availability.`;
+let role=null,vendorProfile=null;            // role: 'owner' | 'vendor'
+let rates={wood:{},lathe:DEFAULT_LATHE_RATE}; // loaded from lathepro_settings/rates
+function isVendor(){return role==='vendor';}
+function rateFor(w){const r=rates.wood&&rates.wood[w];return typeof r==='number'?r:DEFAULT_WOOD_RATE;}
+function latheRate(){return typeof rates.lathe==='number'?rates.lathe:DEFAULT_LATHE_RATE;}
+function vendorDiscount(){return vendorProfile?Number(vendorProfile.discountPct)||0:0;}
+function QCOL(){return isVendor()?'lathepro_vendor_quotes':'lathepro_quotes';}
+function loginToEmail(v){v=v.trim();return v.includes('@')?v:v.toLowerCase()+'@'+VENDOR_EMAIL_DOMAIN;}
+async function loadRates(){try{const snap=await db.collection('lathepro_settings').doc('rates').get();if(snap.exists){const d=snap.data();rates={wood:d.wood||{},lathe:typeof d.lathe==='number'?d.lathe:DEFAULT_LATHE_RATE};}}catch(e){console.warn('Rates unavailable, using defaults',e);}}
 let currentQuote=null,editingQuoteId=null,items=[],discountType='flat',quotesCache=[],_previewMode='quote';
 
 // ── FIREBASE AUTH ──
 async function doLogin(){
-  const email=document.getElementById('login-email').value.trim();
+  const email=loginToEmail(document.getElementById('login-email').value);
   const password=document.getElementById('login-password').value;
   const errEl=document.getElementById('login-error');
   errEl.textContent='';
   if(!email||!password){errEl.textContent='Please enter email and password.';return;}
   showLoading(true);
   try{
-    const cred=await auth.signInWithEmailAndPassword(email,password);
-    if(cred.user.email!==ALLOWED_EMAIL){
-      await auth.signOut();
-      errEl.textContent='Access not authorised for this account.';
-    }
+    await auth.signInWithEmailAndPassword(email,password); // role is resolved in onAuthStateChanged
   }catch(e){
-    const msgs={'auth/invalid-email':'Invalid email address.','auth/user-not-found':'No account found.','auth/wrong-password':'Incorrect password.','auth/invalid-credential':'Incorrect email or password.','auth/too-many-requests':'Too many attempts. Try again later.'};
+    const msgs={'auth/invalid-email':'Invalid email address.','auth/user-not-found':'No account found for this user ID.','auth/wrong-password':'Incorrect password.','auth/invalid-credential':'Incorrect email or password.','auth/too-many-requests':'Too many attempts. Try again later.'};
     errEl.textContent=msgs[e.code]||'Sign in failed. Please try again.';
   }
   showLoading(false);
@@ -543,6 +612,7 @@ async function doLogin(){
 
 async function doLogout(){
   try{await auth.signOut();}catch(e){}
+  role=null;vendorProfile=null;quotesCache=[];document.body.classList.remove('role-vendor');
   showScreen('login');
 }
 
@@ -553,14 +623,20 @@ document.addEventListener('keydown',e=>{
 
 // NAV
 function showScreen(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(n+'-screen').classList.add('active');}
-function goList(){if(document.getElementById('builder-screen').classList.contains('active'))saveDraftToLocal();showScreen('list');loadAll();}
+function goList(){if(document.getElementById('view-screen').classList.contains('active')&&currentQuote&&currentQuote._readonly){openAdmin();return;}if(document.getElementById('builder-screen').classList.contains('active'))saveDraftToLocal();showScreen('list');loadAll();}
 
 // LIST
-async function loadQuotes(){showLoading(true);try{const snap=await db.collection('lathepro_quotes').orderBy('createdAt','desc').get();quotesCache=snap.docs.map(d=>({id:d.id,...d.data()}));renderList();}catch(e){toast('Error loading quotes');}showLoading(false);}
+async function loadQuotes(){showLoading(true);try{
+  // Vendors may only query their own quotes (enforced by Firestore rules); sort client-side to avoid a composite index
+  const q=isVendor()?db.collection(QCOL()).where('vendorUid','==',auth.currentUser.uid):db.collection(QCOL()).orderBy('createdAt','desc');
+  const snap=await q.get();quotesCache=snap.docs.map(d=>({id:d.id,...d.data()}));
+  if(isVendor())quotesCache.sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+  renderList();}catch(e){console.error(e);toast('Error loading quotes');}showLoading(false);}
 
 // ── CUSTOMERS (reuse / autocomplete) ──
 let customersCache=[];
 async function loadCustomers(){
+  if(isVendor()){customersCache=[];return;} // customer book is owner-only
   try{
     const snap=await db.collection('lathepro_customers').get();
     customersCache=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -601,7 +677,7 @@ function fillCustomerFields(c){
   triggerAutoSave&&triggerAutoSave();
 }
 async function upsertCustomer(name,phone,address){
-  if(!name)return;
+  if(!name||isVendor())return;
   // Use phone as the doc id when present (most reliable unique key), else fallback to slugified name
   const id=phone&&phone.trim()?phone.trim().replace(/[^0-9+]/g,''):name.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-');
   if(!id)return;
@@ -617,17 +693,17 @@ function renderList(){const el=document.getElementById('quotes-list'),cnt=docume
 
 // BUILDER
 let itemIdCounter=0;
-function newQuote(){editingQuoteId=null;currentQuote=null;items=[];discountType='flat';['cust-name','cust-phone','cust-address','discount-val'].forEach(id=>document.getElementById(id).value='');document.getElementById('quote-date').value=todayStr();document.getElementById('delivery-date').value='';document.getElementById('terms-text').value=`1. GST will be charged extra as applicable.\n2. 50% advance required before work commencement.\n3. Balance 50% to be paid before dispatch from factory.\n4. Delivery subject to material availability.\n5. Prices valid for 15 days from quote date.`;setDiscType('flat');document.getElementById('items-container').innerHTML='';getNextQuoteNo().then(no=>{document.getElementById('builder-quote-num').textContent=no;window._pendingQuoteNo=no;});const draft=checkForDraft();if(draft&&!draft.editingId){document.getElementById('draft-banner').classList.add('show');addItem();}else{document.getElementById('draft-banner').classList.remove('show');addItem();}setAutosaveStatus('idle');showScreen('builder');}
+function newQuote(){editingQuoteId=null;currentQuote=null;items=[];discountType='flat';['cust-name','cust-phone','cust-address','discount-val'].forEach(id=>document.getElementById(id).value='');document.getElementById('quote-date').value=todayStr();document.getElementById('delivery-date').value='';document.getElementById('terms-text').value=isVendor()?DEFAULT_VENDOR_TERMS:`1. GST will be charged extra as applicable.\n2. 50% advance required before work commencement.\n3. Balance 50% to be paid before dispatch from factory.\n4. Delivery subject to material availability.\n5. Prices valid for 15 days from quote date.`;setDiscType(isVendor()?'pct':'flat');document.getElementById('items-container').innerHTML='';getNextQuoteNo().then(no=>{document.getElementById('builder-quote-num').textContent=no;window._pendingQuoteNo=no;});const draft=checkForDraft();if(draft&&!draft.editingId){document.getElementById('draft-banner').classList.add('show');addItem();}else{document.getElementById('draft-banner').classList.remove('show');addItem();}setAutosaveStatus('idle');showScreen('builder');}
 // QUOTE NUMBERS — compared numerically (text sort put LP-999 after LP-1000)
-function quoteNoNum(no){return parseInt(String(no||'').replace(/\D/g,''),10)||0;}
-function formatQuoteNo(n){return'LP-'+String(n).padStart(3,'0');}
-async function maxExistingQuoteNum(){const snap=await db.collection('lathepro_quotes').get();return snap.docs.reduce((m,d)=>Math.max(m,quoteNoNum(d.data().quoteNo)),0);}
+function quoteNoNum(no){const m=String(no||'').match(/(\d+)\s*$/);return m?parseInt(m[1],10):0;} // trailing digits only ('B2B-001' → 1)
+function formatQuoteNo(n){return(isVendor()?'B2B-':'LP-')+String(n).padStart(3,'0');}
+async function maxExistingQuoteNum(){const snap=isVendor()?await db.collection(QCOL()).where('vendorUid','==',auth.currentUser.uid).get():await db.collection('lathepro_quotes').get();return snap.docs.reduce((m,d)=>Math.max(m,quoteNoNum(d.data().quoteNo)),0);}
 // Tentative number shown in the builder; the real one is allocated on save
 async function getNextQuoteNo(){try{return formatQuoteNo(await maxExistingQuoteNum()+1);}catch{return'LP-…';}}
 // Allocate a unique number atomically via a counter doc, so two devices can't get the same one
 async function allocateQuoteNo(){
   const maxExisting=await maxExistingQuoteNum();
-  if(!navigator.onLine||_netStalled)return formatQuoteNo(maxExisting+1); // transactions need the server
+  if(isVendor()||!navigator.onLine||_netStalled)return formatQuoteNo(maxExisting+1); // vendor numbers are per-vendor; transactions need the server
   try{
     const ref=db.collection('lathepro_meta').doc('counters');
     const n=await Promise.race([db.runTransaction(async tx=>{
@@ -640,7 +716,7 @@ async function allocateQuoteNo(){
   }catch(e){if(e.message==='counter timeout')_netStalled=true;console.warn('Counter unavailable, using max+1',e);return formatQuoteNo(maxExisting+1);}
 }
 
-function addItem(){const id=++itemIdCounter;items.push({id,name:'',woodType:'Teak',length:'',width:'',thickness:'',qty:1,woodRate:DEFAULT_WOOD_RATE,latheRate:DEFAULT_LATHE_RATE,notes:'',internalNotes:'',photos:[]});renderItems();}
+function addItem(){const id=++itemIdCounter;items.push({id,name:'',woodType:'Teak',length:'',width:'',thickness:'',qty:1,woodRate:rateFor('Teak'),latheRate:latheRate(),notes:'',internalNotes:'',photos:[]});renderItems();}
 function removeItem(id){items=items.filter(i=>i.id!==id);renderItems();recalcTotals();}
 function renderItems(){document.getElementById('items-container').innerHTML=items.map((item,idx)=>renderItemCard(item,idx)).join('');}
 
@@ -663,8 +739,8 @@ function renderItemCard(item,idx){
       <div class="form-group"><label>Length (in)</label><input type="number" placeholder="36" min="0" step="0.5" value="${item.length||''}" oninput="updateItem(${item.id},'length',this.value)"></div>
       <div class="form-group"><label>Width (in)</label><input type="number" placeholder="6" min="0" step="0.5" value="${item.width||''}" oninput="updateItem(${item.id},'width',this.value)"></div>
       <div class="form-group"><label>Thickness (in)</label><input type="number" placeholder="6" min="0" step="0.5" value="${item.thickness||''}" oninput="updateItem(${item.id},'thickness',this.value)"></div>
-      <div class="form-group"><label>Wood ₹/CFT</label><input type="number" placeholder="${DEFAULT_WOOD_RATE}" value="${item.woodRate??DEFAULT_WOOD_RATE}" oninput="updateItem(${item.id},'woodRate',this.value)"></div>
-      <div class="form-group"><label>Lathe ₹/ft×in</label><input type="number" placeholder="${DEFAULT_LATHE_RATE}" value="${item.latheRate??DEFAULT_LATHE_RATE}" oninput="updateItem(${item.id},'latheRate',this.value)"></div>
+      <div class="form-group"><label>Wood ₹/CFT</label><input type="number" placeholder="${rateFor(item.woodType)}" value="${isVendor()?rateFor(item.woodType):(item.woodRate??rateFor(item.woodType))}" ${isVendor()?'readonly tabindex="-1"':''} oninput="updateItem(${item.id},'woodRate',this.value)"></div>
+      <div class="form-group"><label>Lathe ₹/ft×in</label><input type="number" placeholder="${latheRate()}" value="${isVendor()?latheRate():(item.latheRate??latheRate())}" ${isVendor()?'readonly tabindex="-1"':''} oninput="updateItem(${item.id},'latheRate',this.value)"></div>
     </div>
     <div class="calc-bar" id="calc-${item.id}">
       <div class="calc-chip"><span class="calc-chip-label">CFT</span><span class="calc-chip-val" id="cft-${item.id}">—</span></div>
@@ -682,10 +758,10 @@ function renderItemCard(item,idx){
     <div style="margin-bottom:8px;">
       <div class="form-group"><label>Notes <span style="color:var(--text3);font-weight:400;">(visible on quote)</span></label><input type="text" placeholder="Special instructions for client..." value="${esc(item.notes)}" oninput="updateItem(${item.id},'notes',this.value)"></div>
     </div>
-    <div style="margin-bottom:8px;">
+    <div style="margin-bottom:8px;" class="owner-only">
       <div class="form-group"><label style="color:#b05a1a;">🔒 Internal Notes <span style="font-weight:400;color:var(--text3);">(job sheet only — not shown to client)</span></label><input type="text" placeholder="Workshop instructions, measurements, reminders..." value="${esc(item.internalNotes)}" oninput="updateItem(${item.id},'internalNotes',this.value)" style="border-color:#f0c080;background:#fffbf0;"></div>
     </div>
-    <div class="photos-row" id="photos-grid-${item.id}">
+    <div class="photos-row owner-only" id="photos-grid-${item.id}">
       ${thumbs}
       <label class="photo-add-btn" for="photo-input-${item.id}">+</label>
       <input type="file" id="photo-input-${item.id}" accept="image/*" multiple style="display:none" onchange="addPhotos(${item.id},this)">
@@ -693,7 +769,7 @@ function renderItemCard(item,idx){
   </div>
 </div>`;}
 
-function updateItem(id,field,value){const item=items.find(i=>i.id===id);if(!item)return;item[field]=['qty','woodRate','latheRate','length','width','thickness'].includes(field)?parseFloat(value)||0:value;calcItem(id);}
+function updateItem(id,field,value){const item=items.find(i=>i.id===id);if(!item)return;if(field==='woodType'){const inp=document.querySelectorAll(`#item-card-${id} input[type="number"]`)[4];if(inp)inp.value=rateFor(value);item.woodRate=rateFor(value);}item[field]=['qty','woodRate','latheRate','length','width','thickness'].includes(field)?parseFloat(value)||0:value;calcItem(id);}
 
 function calcItem(id){
   const item=items.find(i=>i.id===id);if(!item)return;
@@ -707,6 +783,7 @@ function calcItem(id){
     const inp=card.querySelectorAll('input[type="number"]');
     if(inp.length>=6){item.qty=parseInt(inp[0].value)||1;item.length=parseFloat(inp[1].value)||0;item.width=parseFloat(inp[2].value)||0;item.thickness=parseFloat(inp[3].value)||0;item.woodRate=inp[4].value===''?DEFAULT_WOOD_RATE:parseFloat(inp[4].value);item.latheRate=inp[5].value===''?DEFAULT_LATHE_RATE:parseFloat(inp[5].value);}
   }
+  if(isVendor()){item.woodRate=rateFor(item.woodType);item.latheRate=latheRate();} // vendors always price at the current rate card
   const L=item.length||0,W=item.width||0,T=item.thickness||0,qty=item.qty||1;
   const wR=(item.woodRate===''||item.woodRate==null)?DEFAULT_WOOD_RATE:item.woodRate;
   const lR=(item.latheRate===''||item.latheRate==null)?DEFAULT_LATHE_RATE:item.latheRate;
@@ -728,9 +805,10 @@ function calcItem(id){
 
 function recalcTotals(){
   const sW=items.reduce((a,i)=>a+(i._woodTotal||0),0),sL=items.reduce((a,i)=>a+(i._latheTotal||0),0),sub=sW+sL;
-  const dv=Math.max(0,parseFloat(document.getElementById('discount-val')?.value)||0);
+  if(isVendor())discountType='pct';
+  const dv=isVendor()?vendorDiscount():Math.max(0,parseFloat(document.getElementById('discount-val')?.value)||0);
   const da=discountType==='flat'?Math.min(dv,sub):sub*Math.min(dv,100)/100,grand=Math.max(0,sub-da);
-  document.getElementById('totals-breakdown').innerHTML=`<div class="totals-row"><span class="lbl">Wood Subtotal</span><span class="val">₹${fmt(sW)}</span></div><div class="totals-row"><span class="lbl">Lathe Subtotal</span><span class="val">₹${fmt(sL)}</span></div><div class="totals-row"><span class="lbl">Subtotal</span><span class="val">₹${fmt(sub)}</span></div>${da>0?`<div class="totals-row"><span class="lbl">Discount${discountType==='pct'?` (${dv}%)`:''}</span><span class="val" style="color:var(--red);">−₹${fmt(da)}</span></div>`:''}<div class="totals-grand"><span class="lbl">Grand Total</span><span class="val">₹${fmt(grand)}</span></div>`;
+  document.getElementById('totals-breakdown').innerHTML=`<div class="totals-row"><span class="lbl">Wood Subtotal</span><span class="val">₹${fmt(sW)}</span></div><div class="totals-row"><span class="lbl">Lathe Subtotal</span><span class="val">₹${fmt(sL)}</span></div><div class="totals-row"><span class="lbl">Subtotal</span><span class="val">₹${fmt(sub)}</span></div>${da>0?`<div class="totals-row"><span class="lbl">${isVendor()?'B2B ':''}Discount${discountType==='pct'?` (${dv}%)`:''}</span><span class="val" style="color:var(--red);">−₹${fmt(da)}</span></div>`:''}<div class="totals-grand"><span class="lbl">Grand Total</span><span class="val">₹${fmt(grand)}</span></div>`;
   return{subtotalWood:sW,subtotalLathe:sL,subtotal:sub,discAmount:da,grandTotal:grand};
 }
 function setDiscType(type){discountType=type;document.getElementById('disc-flat-btn').classList.toggle('active',type==='flat');document.getElementById('disc-pct-btn').classList.toggle('active',type==='pct');recalcTotals();}
@@ -783,31 +861,32 @@ async function saveQuote(){
   if(!custName){toast('Please enter customer name');return false;}
   if(!items.length){toast('Please add at least one item');return false;}
   items.forEach(it=>calcItem(it.id));const totals=recalcTotals();
-  const discVal=parseFloat(document.getElementById('discount-val').value)||0;
+  const discVal=isVendor()?vendorDiscount():(parseFloat(document.getElementById('discount-val').value)||0);
   const quoteData={quoteNo:window._pendingQuoteNo||editingQuoteId,customerName:custName,phone:document.getElementById('cust-phone').value.trim(),address:document.getElementById('cust-address').value.trim(),date:document.getElementById('quote-date').value,deliveryDate:document.getElementById('delivery-date').value,terms:document.getElementById('terms-text').value,discountType,discountVal:discVal,discountAmount:totals.discAmount,subtotalWood:totals.subtotalWood,subtotalLathe:totals.subtotalLathe,subtotal:totals.subtotal,grandTotal:totals.grandTotal,
     items:items.map(it=>({id:it.id,name:it.name,woodType:it.woodType,length:it.length,width:it.width,thickness:it.thickness,qty:it.qty,woodRate:it.woodRate,latheRate:it.latheRate,notes:it.notes,internalNotes:it.internalNotes||'',photos:it.photos,_cft:it._cft||0,_woodPerPc:it._woodPerPc||0,_lathePerPc:it._lathePerPc||0,_woodTotal:it._woodTotal||0,_latheTotal:it._latheTotal||0,_itemTotal:it._itemTotal||0})),
     updatedAt:new Date().toISOString()};
+  if(isVendor()){quoteData.vendorUid=auth.currentUser.uid;quoteData.vendorName=vendorProfile.businessName||'';quoteData.discountType='pct';quoteData.discountVal=vendorDiscount();quoteData.items.forEach(it=>{it.photos=[];it.internalNotes='';});}
   if(!editingQuoteId)quoteData.createdAt=new Date().toISOString();
   showLoading(true);
-  try{if(editingQuoteId){const prevSnap=await db.collection('lathepro_quotes').doc(editingQuoteId).get();const prevPhotos=prevSnap.exists?quotePhotos(prevSnap.data()):[];const synced=await commitWrite(db.collection('lathepro_quotes').doc(editingQuoteId).update(quoteData));const keep=new Set(quotePhotos(quoteData));cleanupUnusedPhotos(prevPhotos.filter(u=>!keep.has(u)));currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');savedToast('Quote updated ✓',synced);}else{quoteData.quoteNo=await allocateQuoteNo();window._pendingQuoteNo=quoteData.quoteNo;document.getElementById('builder-quote-num').textContent=quoteData.quoteNo;const ref=db.collection('lathepro_quotes').doc();const synced=await commitWrite(ref.set(quoteData));editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');savedToast('Quote saved ✓',synced);}
+  try{if(editingQuoteId){const prevSnap=await db.collection(QCOL()).doc(editingQuoteId).get();const prevPhotos=prevSnap.exists?quotePhotos(prevSnap.data()):[];const synced=await commitWrite(db.collection(QCOL()).doc(editingQuoteId).update(quoteData));const keep=new Set(quotePhotos(quoteData));cleanupUnusedPhotos(prevPhotos.filter(u=>!keep.has(u)));currentQuote={id:editingQuoteId,...quoteData};clearDraft();setAutosaveStatus('idle');savedToast('Quote updated ✓',synced);}else{quoteData.quoteNo=await allocateQuoteNo();window._pendingQuoteNo=quoteData.quoteNo;document.getElementById('builder-quote-num').textContent=quoteData.quoteNo;const ref=db.collection(QCOL()).doc();const synced=await commitWrite(ref.set(quoteData));editingQuoteId=ref.id;currentQuote={id:ref.id,...quoteData};clearDraft();setAutosaveStatus('idle');savedToast('Quote saved ✓',synced);}
     upsertCustomer(quoteData.customerName,quoteData.phone,quoteData.address); // fire-and-forget, doesn't block save
   }catch(e){toast('Error saving: '+e.message);showLoading(false);return false;}showLoading(false);return true;
 }
 
 // VIEW
-async function openQuote(id){showLoading(true);try{const snap=await db.collection('lathepro_quotes').doc(id).get();if(!snap.exists){toast('Not found');return;}currentQuote={id:snap.id,...snap.data()};renderView(currentQuote);showScreen('view');}catch(e){toast('Error loading quote');}showLoading(false);}
+async function openQuote(id,col){showLoading(true);try{const snap=await db.collection(col||QCOL()).doc(id).get();if(!snap.exists){toast('Not found');showLoading(false);return;}currentQuote={id:snap.id,...snap.data()};if(col)currentQuote._readonly=true;document.getElementById('view-screen').classList.toggle('readonly',!!currentQuote._readonly);renderView(currentQuote);showScreen('view');}catch(e){toast('Error loading quote');}showLoading(false);}
 
 function renderView(q){
   const el=document.getElementById('view-body');
   const rows=(q.items||[]).map((item,idx)=>`<div class="view-table-row"><div class="view-row-top"><div class="view-col-num">${String(idx+1).padStart(2,'0')}</div><div><div class="view-col-name">${esc(item.name||'Unnamed')}</div><div class="view-col-sub">${esc(item.woodType)} · ${(item._cft||0).toFixed(4)} CFT</div></div><div style="font-size:11px;color:var(--text2);">${item.length}"×${item.width}"×${item.thickness}"</div><div class="view-col-r">${item.qty}×</div><div class="view-col-r">₹${fmt(item._woodTotal||0)}</div><div class="view-col-r">₹${fmt(item._latheTotal||0)}</div><div class="view-col-total">₹${fmt(item._itemTotal||0)}</div></div>${item.photos&&item.photos.length?`<div class="view-row-photos">${item.photos.map(p=>`<img src="${esc(p)}" alt="ref">`).join('')}</div>`:''  }${item.notes?`<div class="view-row-note">📝 ${esc(item.notes)}</div>`:''}</div>`).join('');
-  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px;"><div><div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);letter-spacing:1px;">${esc(q.quoteNo)}</div><div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--text);margin-top:3px;">${esc(q.customerName)}</div><div style="font-size:12px;color:var(--text3);margin-top:3px;">${formatDate(q.date)}${q.phone?' · '+esc(q.phone):''}${q.deliveryDate?' · Delivery: '+formatDate(q.deliveryDate):''}</div>${q.address?`<div style="font-size:12px;color:var(--text3);margin-top:2px;">${esc(q.address)}</div>`:''}</div></div>
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px;"><div><div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);letter-spacing:1px;">${esc(q.quoteNo)}</div><div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--text);margin-top:3px;">${esc(q.customerName)}</div><div style="font-size:12px;color:var(--text3);margin-top:3px;">${formatDate(q.date)}${q.phone?' · '+esc(q.phone):''}${q.deliveryDate?' · Delivery: '+formatDate(q.deliveryDate):''}</div>${q.address?`<div style="font-size:12px;color:var(--text3);margin-top:2px;">${esc(q.address)}</div>`:''}${q.vendorName?`<div style="margin-top:6px;"><span class="badge badge-gold">B2B · ${esc(q.vendorName)}</span></div>`:''}</div></div>
   <div class="view-table"><div class="view-table-header"><span>#</span><span>Item</span><span>Dims</span><span>Qty</span><span style="text-align:right;">Wood</span><span style="text-align:right;">Lathe</span><span style="text-align:right;">Total</span></div>${rows}</div>
-  <div class="view-summary-inline"><div class="totals-row"><span class="lbl">Wood Subtotal</span><span class="val">₹${fmt(q.subtotalWood||0)}</span></div><div class="totals-row"><span class="lbl">Lathe Subtotal</span><span class="val">₹${fmt(q.subtotalLathe||0)}</span></div><div class="totals-row"><span class="lbl">Subtotal</span><span class="val">₹${fmt(q.subtotal||0)}</span></div>${q.discountAmount>0?`<div class="totals-row"><span class="lbl">Discount</span><span class="val" style="color:var(--red);">−₹${fmt(q.discountAmount)}</span></div>`:''}<div class="totals-grand"><span class="lbl">Grand Total</span><span class="val">₹${fmt(q.grandTotal||0)}</span></div></div>
+  <div class="view-summary-inline"><div class="totals-row"><span class="lbl">Wood Subtotal</span><span class="val">₹${fmt(q.subtotalWood||0)}</span></div><div class="totals-row"><span class="lbl">Lathe Subtotal</span><span class="val">₹${fmt(q.subtotalLathe||0)}</span></div><div class="totals-row"><span class="lbl">Subtotal</span><span class="val">₹${fmt(q.subtotal||0)}</span></div>${q.discountAmount>0?`<div class="totals-row"><span class="lbl">${q.vendorUid?'B2B ':''}Discount${q.discountType==='pct'?` (${q.discountVal}%)`:''}</span><span class="val" style="color:var(--red);">−₹${fmt(q.discountAmount)}</span></div>`:''}<div class="totals-grand"><span class="lbl">Grand Total</span><span class="val">₹${fmt(q.grandTotal||0)}</span></div></div>
   <div class="view-terms">${esc(q.terms).replace(/\n/g,'<br>')}</div>`;
 }
 
 function editCurrentQuote(){if(!currentQuote)return;editingQuoteId=currentQuote.id;window._pendingQuoteNo=currentQuote.quoteNo;document.getElementById('builder-quote-num').textContent=currentQuote.quoteNo;document.getElementById('cust-name').value=currentQuote.customerName||'';document.getElementById('cust-phone').value=currentQuote.phone||'';document.getElementById('cust-address').value=currentQuote.address||'';document.getElementById('quote-date').value=currentQuote.date||todayStr();document.getElementById('delivery-date').value=currentQuote.deliveryDate||'';document.getElementById('terms-text').value=currentQuote.terms||'';document.getElementById('discount-val').value=currentQuote.discountVal||'';setDiscType(currentQuote.discountType||'flat');itemIdCounter=0;items=(currentQuote.items||[]).map(it=>({...it,photos:[...(it.photos||[])],id:++itemIdCounter}));renderItems();items.forEach(it=>calcItem(it.id));recalcTotals();showScreen('builder');}
-async function deleteCurrentQuote(){if(!currentQuote)return;if(!confirm(`Delete ${currentQuote.quoteNo}?`))return;showLoading(true);try{const photos=quotePhotos(currentQuote);const synced=await commitWrite(db.collection('lathepro_quotes').doc(currentQuote.id).delete());cleanupUnusedPhotos(photos);savedToast('Deleted ✓',synced);currentQuote=null;goList();}catch(e){toast('Error');}showLoading(false);}
+async function deleteCurrentQuote(){if(!currentQuote)return;if(!confirm(`Delete ${currentQuote.quoteNo}?`))return;showLoading(true);try{const photos=quotePhotos(currentQuote);const synced=await commitWrite(db.collection(QCOL()).doc(currentQuote.id).delete());cleanupUnusedPhotos(photos);savedToast('Deleted ✓',synced);currentQuote=null;goList();}catch(e){toast('Error');}showLoading(false);}
 
 async function duplicateCurrentQuote(){
   if(!currentQuote)return;
@@ -823,7 +902,8 @@ async function duplicateCurrentQuote(){
       updatedAt:new Date().toISOString()
     };
     delete copy.id;
-    const ref=db.collection('lathepro_quotes').doc();const synced=await commitWrite(ref.set(copy));
+    if(isVendor()){copy.discountVal=vendorDiscount();copy.vendorUid=auth.currentUser.uid;}delete copy._readonly;
+    const ref=db.collection(QCOL()).doc();const synced=await commitWrite(ref.set(copy));
     savedToast('Duplicated as '+newNo+' ✓',synced);
     // Open the new duplicate
     currentQuote={id:ref.id,...copy};
@@ -849,8 +929,8 @@ function buildQuotePreviewHTML(q){
   const rows=(q.items||[]).map((item,idx)=>{
     const photos=item.photos&&item.photos.length?`<tr class="item-photo-row"><td colspan="6"><div class="preview-photo-strip">${item.photos.slice(0,5).map(p=>`<img src="${esc(p)}" crossorigin="anonymous" referrerpolicy="no-referrer" loading="eager" onerror="this.style.display='none'">`).join('')}</div></td></tr>`:'';
     return `<tr class="item-header-row"><td colspan="6"><span style="font-size:10px;color:#9a6e2e;margin-right:8px;">ITEM ${String(idx+1).padStart(2,'0')}</span>${esc(item.name||'—')}<span style="font-size:11px;color:#9e8460;margin-left:8px;">· ${esc(item.woodType)} · ${item.length}"×${item.width}"×${item.thickness}" · ${item.qty}pcs · CFT:${(item._cft||0).toFixed(4)}</span></td></tr>${photos}<tr class="item-cost-row"><td>Wood Cost (${esc(item.woodType)})</td><td>₹${fmt(item.woodRate)}/CFT</td><td>₹${fmt(item._woodPerPc||0)}</td><td>×${item.qty}</td><td></td><td>₹${fmt(item._woodTotal||0)}</td></tr><tr class="item-cost-row" style="border-bottom:2px solid #e2d9c8;"><td>Lathe Work</td><td>₹${fmt(item.latheRate)}/ft×in</td><td>₹${fmt(item._lathePerPc||0)}</td><td>×${item.qty}</td><td></td><td>₹${fmt(item._latheTotal||0)}</td></tr>${item.notes?`<tr><td colspan="6" style="padding:3px 8px 8px;font-size:11px;color:#9e8460;border-bottom:1px solid #e2d9c8;">📝 ${esc(item.notes)}</td></tr>`:''}`;}).join('');
-  const summRows=[['Wood Subtotal','₹'+fmt(q.subtotalWood||0)],['Lathe Subtotal','₹'+fmt(q.subtotalLathe||0)],['Subtotal','₹'+fmt(q.subtotal||0)],...(q.discountAmount>0?[[`Discount${q.discountType==='pct'?` (${q.discountVal}%)`:''}`,`−₹${fmt(q.discountAmount)}`]]:[])];
-  return `<div class="preview-letterhead"><div class="preview-lh-left"><div class="preview-lh-name">AMAR FURNITURE</div><div class="preview-lh-sub">LathePro Quotation · Nashik, Maharashtra</div></div><div class="preview-lh-right"><div class="preview-lh-qno">${esc(q.quoteNo)}</div><div class="preview-lh-date">${formatDate(q.date)}</div>${q.deliveryDate?`<div class="preview-lh-date">Delivery: ${formatDate(q.deliveryDate)}</div>`:''}</div></div><div class="preview-customer-bar"><div><div class="preview-cust-label">Bill To</div><div class="preview-cust-name">${esc(q.customerName)}</div>${q.address?`<div class="preview-cust-meta">${esc(q.address)}</div>`:''}</div>${q.phone?`<div style="font-size:13px;color:#6b5535;">📞 ${esc(q.phone)}</div>`:''}</div><div class="preview-items"><table class="preview-tbl"><thead><tr><th>Description</th><th>Rate</th><th>Per Pc</th><th>Qty</th><th></th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table></div><div class="preview-totals"><div class="preview-summary-strip"><div class="preview-summary-cols"><div class="preview-summary-item"><div class="ps-label">Wood Total</div><div class="ps-val">₹${fmt(q.subtotalWood||0)}</div></div><div class="preview-summary-item"><div class="ps-label">Lathe Total</div><div class="ps-val">₹${fmt(q.subtotalLathe||0)}</div></div><div class="preview-summary-item"><div class="ps-label">Subtotal</div><div class="ps-val">₹${fmt(q.subtotal||0)}</div></div>${q.discountAmount>0?`<div class="preview-summary-item"><div class="ps-label">Discount</div><div class="ps-val" style="color:#e07060;">−₹${fmt(q.discountAmount)}</div></div>`:''}</div><div class="preview-grand-block"><div class="ps-label">Grand Total</div><div class="ps-grand">₹${fmt(q.grandTotal||0)}</div></div></div></div><div class="preview-terms"><strong style="color:#6b5535;">Terms &amp; Conditions</strong><br>${esc(q.terms).replace(/\n/g,'<br>')}</div>`;
+  const summRows=[['Wood Subtotal','₹'+fmt(q.subtotalWood||0)],['Lathe Subtotal','₹'+fmt(q.subtotalLathe||0)],['Subtotal','₹'+fmt(q.subtotal||0)],...(q.discountAmount>0?[[`${q.vendorUid?'B2B ':''}Discount${q.discountType==='pct'?` (${q.discountVal}%)`:''}`,`−₹${fmt(q.discountAmount)}`]]:[])];
+  return `<div class="preview-letterhead"><div class="preview-lh-left"><div class="preview-lh-name">AMAR FURNITURE</div><div class="preview-lh-sub">${q.vendorUid?'B2B Rate Quote':'LathePro Quotation'} · Nashik, Maharashtra</div></div><div class="preview-lh-right"><div class="preview-lh-qno">${esc(q.quoteNo)}</div><div class="preview-lh-date">${formatDate(q.date)}</div>${q.deliveryDate?`<div class="preview-lh-date">Delivery: ${formatDate(q.deliveryDate)}</div>`:''}</div></div><div class="preview-customer-bar"><div><div class="preview-cust-label">${q.vendorUid?'B2B: '+esc(q.vendorName)+' · Ref':'Bill To'}</div><div class="preview-cust-name">${esc(q.customerName)}</div>${q.address?`<div class="preview-cust-meta">${esc(q.address)}</div>`:''}</div>${q.phone?`<div style="font-size:13px;color:#6b5535;">📞 ${esc(q.phone)}</div>`:''}</div><div class="preview-items"><table class="preview-tbl"><thead><tr><th>Description</th><th>Rate</th><th>Per Pc</th><th>Qty</th><th></th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table></div><div class="preview-totals"><div class="preview-summary-strip"><div class="preview-summary-cols"><div class="preview-summary-item"><div class="ps-label">Wood Total</div><div class="ps-val">₹${fmt(q.subtotalWood||0)}</div></div><div class="preview-summary-item"><div class="ps-label">Lathe Total</div><div class="ps-val">₹${fmt(q.subtotalLathe||0)}</div></div><div class="preview-summary-item"><div class="ps-label">Subtotal</div><div class="ps-val">₹${fmt(q.subtotal||0)}</div></div>${q.discountAmount>0?`<div class="preview-summary-item"><div class="ps-label">${q.vendorUid?'B2B ':''}Discount${q.discountType==='pct'?` (${q.discountVal}%)`:''}</div><div class="ps-val" style="color:#e07060;">−₹${fmt(q.discountAmount)}</div></div>`:''}</div><div class="preview-grand-block"><div class="ps-label">Grand Total</div><div class="ps-grand">₹${fmt(q.grandTotal||0)}</div></div></div></div><div class="preview-terms"><strong style="color:#6b5535;">Terms &amp; Conditions</strong><br>${esc(q.terms).replace(/\n/g,'<br>')}</div>`;
 }
 
 function buildJobPreviewHTML(q){
@@ -871,7 +951,7 @@ async function generateQuotePDF(){
     // Header
     pdf.setFillColor(26,18,9);pdf.rect(0,0,W,30,'F');
     pdf.setTextColor(201,168,76);pdf.setFont('helvetica','bold');pdf.setFontSize(18);pdf.text('AMAR FURNITURE',M,13);
-    pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor(160,130,80);pdf.text('LathePro Quotation  -  Nashik, Maharashtra',M,20);
+    pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor(160,130,80);pdf.text((quote.vendorUid?'B2B Rate Quote':'LathePro Quotation')+'  -  Nashik, Maharashtra',M,20);
     pdf.setTextColor(201,168,76);pdf.setFont('helvetica','bold');pdf.setFontSize(12);pdf.text(quote.quoteNo,W-M,12,{align:'right'});
     pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);pdf.setTextColor(160,130,80);
     pdf.text('Date: '+formatDate(quote.date),W-M,19,{align:'right'});
@@ -879,7 +959,7 @@ async function generateQuotePDF(){
     y=35;
     // Customer
     pdf.setFillColor(253,248,239);pdf.rect(M,y,W-M*2,12,'F');pdf.setDrawColor(226,217,200);pdf.rect(M,y,W-M*2,12,'S');
-    pdf.setTextColor(100,80,40);pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);pdf.text('BILL TO',M+2,y+4.5);
+    pdf.setTextColor(100,80,40);pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);pdf.text(quote.vendorUid?('B2B: '+(quote.vendorName||'').toUpperCase()+'  -  REF'):'BILL TO',M+2,y+4.5);
     pdf.setFont('helvetica','normal');pdf.setFontSize(9.5);pdf.setTextColor(42,31,14);pdf.text(quote.customerName,M+2,y+9.5);
     if(quote.phone)pdf.text(quote.phone,W-M-2,y+9.5,{align:'right'});
     if(quote.address)pdf.text(quote.address.substring(0,80),M+2,y+13.5);
@@ -933,7 +1013,7 @@ async function generateQuotePDF(){
 
     // Discount if any
     if(quote.discountAmount>0){
-      pdf.setTextColor(106,80,48);pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);pdf.text('Discount',cols2[2]+50,y+5);
+      pdf.setTextColor(106,80,48);pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);pdf.text((quote.vendorUid?'B2B ':'')+'Discount'+(quote.discountType==='pct'?' ('+quote.discountVal+'%)':''),cols2[2]+50,y+5);
       pdf.setTextColor(200,100,80);pdf.setFont('helvetica','bold');pdf.setFontSize(8.5);pdf.text('-'+pdfFmt(quote.discountAmount),cols2[2]+50,y+11);
     }
 
@@ -1061,7 +1141,7 @@ async function generateJobSheet(){
 }
 
 // WHATSAPP
-function shareWhatsApp(){const q=currentQuote;if(!q)return;const msg=`*LathePro Quote — Amar Furniture*\n━━━━━━━━━━━━━━━━\n*Quote:* ${q.quoteNo}\n*Customer:* ${q.customerName}\n*Date:* ${formatDate(q.date)}${q.deliveryDate?'\n*Delivery:* '+formatDate(q.deliveryDate):''}\n\n${(q.items||[]).map((it,i)=>`*Item ${i+1}: ${it.name||'Item'}*\n  • ${it.woodType} · ${it.length}"×${it.width}"×${it.thickness}" × ${it.qty}pcs\n  • Wood: ₹${fmt(it._woodTotal||0)} | Lathe: ₹${fmt(it._latheTotal||0)}`).join('\n')}\n\n━━━━━━━━━━━━━━━━\n*Wood Total:* ₹${fmt(q.subtotalWood||0)}\n*Lathe Total:* ₹${fmt(q.subtotalLathe||0)}\n${q.discountAmount>0?`*Discount:* −₹${fmt(q.discountAmount)}\n`:''  }*Grand Total: ₹${fmt(q.grandTotal||0)}*\n\nGST will be charged extra as applicable.\n_Amar Furniture, Nashik_`;window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');}
+function shareWhatsApp(){const q=currentQuote;if(!q)return;const msg=`*${q.vendorUid?'B2B Rate Quote':'LathePro Quote'} — Amar Furniture*${q.vendorName?'\n*B2B:* '+q.vendorName:''}\n━━━━━━━━━━━━━━━━\n*Quote:* ${q.quoteNo}\n*Customer:* ${q.customerName}\n*Date:* ${formatDate(q.date)}${q.deliveryDate?'\n*Delivery:* '+formatDate(q.deliveryDate):''}\n\n${(q.items||[]).map((it,i)=>`*Item ${i+1}: ${it.name||'Item'}*\n  • ${it.woodType} · ${it.length}"×${it.width}"×${it.thickness}" × ${it.qty}pcs\n  • Wood: ₹${fmt(it._woodTotal||0)} | Lathe: ₹${fmt(it._latheTotal||0)}`).join('\n')}\n\n━━━━━━━━━━━━━━━━\n*Wood Total:* ₹${fmt(q.subtotalWood||0)}\n*Lathe Total:* ₹${fmt(q.subtotalLathe||0)}\n${q.discountAmount>0?`*${q.vendorUid?'B2B ':''}Discount${q.discountType==='pct'?' ('+q.discountVal+'%)':''}:* −₹${fmt(q.discountAmount)}\n`:''  }*Grand Total: ₹${fmt(q.grandTotal||0)}*\n\nGST will be charged extra as applicable.\n_Amar Furniture, Nashik_`;window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');}
 
 // UTILS
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -1093,10 +1173,11 @@ function dismissInstall(){document.getElementById('install-banner').classList.re
 // AUTOSAVE
 let _ast=null;
 function triggerAutoSave(){setAutosaveStatus('saving');clearTimeout(_ast);_ast=setTimeout(()=>{saveDraftToLocal();setAutosaveStatus('saved');setTimeout(()=>setAutosaveStatus('idle'),2000);},1200);}
-function saveDraftToLocal(){try{items.forEach(it=>calcItem(it.id));localStorage.setItem(DRAFT_KEY,JSON.stringify({quoteNo:window._pendingQuoteNo,editingId:editingQuoteId,customerName:document.getElementById('cust-name').value,phone:document.getElementById('cust-phone').value,address:document.getElementById('cust-address').value,date:document.getElementById('quote-date').value,deliveryDate:document.getElementById('delivery-date').value,terms:document.getElementById('terms-text').value,discountType,discountVal:document.getElementById('discount-val').value,items:items.map(it=>({...it})),savedAt:new Date().toISOString()}));}catch(e){console.warn('Draft save failed',e);}}
-function clearDraft(){localStorage.removeItem(DRAFT_KEY);}
-function checkForDraft(){try{const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');return d&&(d.customerName||d.items?.length>0)?d:false;}catch{return false;}}
-function restoreDraft(){try{const draft=JSON.parse(localStorage.getItem(DRAFT_KEY));if(!draft)return;editingQuoteId=draft.editingId||null;if(editingQuoteId){window._pendingQuoteNo=draft.quoteNo;document.getElementById('builder-quote-num').textContent=draft.quoteNo||'';}document.getElementById('cust-name').value=draft.customerName||'';document.getElementById('cust-phone').value=draft.phone||'';document.getElementById('cust-address').value=draft.address||'';document.getElementById('quote-date').value=draft.date||todayStr();document.getElementById('delivery-date').value=draft.deliveryDate||'';document.getElementById('terms-text').value=draft.terms||'';document.getElementById('discount-val').value=draft.discountVal||'';setDiscType(draft.discountType||'flat');itemIdCounter=0;items=(draft.items||[]).map(it=>({...it,id:++itemIdCounter}));renderItems();items.forEach(it=>calcItem(it.id));recalcTotals();document.getElementById('draft-banner').classList.remove('show');toast('Draft restored ✓');}catch(e){toast('Could not restore draft');}}
+function saveDraftToLocal(){try{items.forEach(it=>calcItem(it.id));localStorage.setItem(draftKey(),JSON.stringify({quoteNo:window._pendingQuoteNo,editingId:editingQuoteId,customerName:document.getElementById('cust-name').value,phone:document.getElementById('cust-phone').value,address:document.getElementById('cust-address').value,date:document.getElementById('quote-date').value,deliveryDate:document.getElementById('delivery-date').value,terms:document.getElementById('terms-text').value,discountType,discountVal:document.getElementById('discount-val').value,items:items.map(it=>({...it})),savedAt:new Date().toISOString()}));}catch(e){console.warn('Draft save failed',e);}}
+function draftKey(){return DRAFT_KEY+(auth.currentUser&&isVendor()?'_'+auth.currentUser.uid:'');}
+function clearDraft(){localStorage.removeItem(draftKey());}
+function checkForDraft(){try{const d=JSON.parse(localStorage.getItem(draftKey())||'null');return d&&(d.customerName||d.items?.length>0)?d:false;}catch{return false;}}
+function restoreDraft(){try{const draft=JSON.parse(localStorage.getItem(draftKey()));if(!draft)return;editingQuoteId=draft.editingId||null;if(editingQuoteId){window._pendingQuoteNo=draft.quoteNo;document.getElementById('builder-quote-num').textContent=draft.quoteNo||'';}document.getElementById('cust-name').value=draft.customerName||'';document.getElementById('cust-phone').value=draft.phone||'';document.getElementById('cust-address').value=draft.address||'';document.getElementById('quote-date').value=draft.date||todayStr();document.getElementById('delivery-date').value=draft.deliveryDate||'';document.getElementById('terms-text').value=draft.terms||'';document.getElementById('discount-val').value=draft.discountVal||'';setDiscType(draft.discountType||'flat');itemIdCounter=0;items=(draft.items||[]).map(it=>({...it,id:++itemIdCounter}));renderItems();items.forEach(it=>calcItem(it.id));recalcTotals();document.getElementById('draft-banner').classList.remove('show');toast('Draft restored ✓');}catch(e){toast('Could not restore draft');}}
 function discardDraft(){clearDraft();document.getElementById('draft-banner').classList.remove('show');}
 function setAutosaveStatus(status){const el=document.getElementById('autosave-indicator'),txt=document.getElementById('autosave-text');if(!el)return;el.className='autosave-indicator '+(status!=='idle'?status:'');txt.textContent=status==='saving'?'saving…':status==='saved'?'draft saved':'draft';}
 
@@ -1111,14 +1192,134 @@ async function loadAll(){showLoading(true);try{await Promise.all([loadQuotes(),l
 document.querySelectorAll('[id^="version-badge"]').forEach(el=>el.textContent='v'+APP_VERSION);
 
 // Auth state
-auth.onAuthStateChanged(user=>{
-  if(user&&user.email===ALLOWED_EMAIL){
-    showScreen('list');
-    loadAll();
-  } else {
-    showScreen('login');
-  }
+auth.onAuthStateChanged(async user=>{
+  if(!user){role=null;vendorProfile=null;document.body.classList.remove('role-vendor');showScreen('login');return;}
+  showLoading(true);
+  try{
+    if(user.email===ALLOWED_EMAIL){
+      role='owner';vendorProfile=null;
+    }else{
+      // Anyone else must have an active vendor profile created from the B2B Admin panel
+      const snap=await db.collection('lathepro_vendors').doc(user.uid).get();
+      if(!snap.exists||snap.data().active!==true){
+        await auth.signOut();showLoading(false);
+        document.getElementById('login-error').textContent=snap.exists?'This account has been deactivated. Please contact Amar Furniture.':'Access not authorised for this account.';
+        return;
+      }
+      role='vendor';vendorProfile={uid:user.uid,...snap.data()};
+    }
+    document.body.classList.toggle('role-vendor',isVendor());
+    applyRoleUI();
+    await loadRates();
+  }catch(e){console.error(e);await auth.signOut();showLoading(false);document.getElementById('login-error').textContent='Could not verify account: '+(e.message||e.code);return;}
+  showLoading(false);
+  showScreen('list');
+  loadAll();
 });
+
+function applyRoleUI(){
+  const v=isVendor();
+  document.getElementById('cust-section-title').textContent=v?'Quote For':'Customer Details';
+  document.getElementById('cust-name-label').textContent=v?'Client / Reference *':'Customer Name *';
+  if(v){
+    document.getElementById('vendor-badge').textContent=`${vendorProfile.businessName||''} · B2B ${vendorDiscount()}% off`;
+    document.getElementById('vendor-disc-note').textContent=`B2B ${vendorDiscount()}% applied`;
+  }
+}
+
+// ═════════ B2B ADMIN (owner only; protected server-side by Firestore rules) ═════════
+let vendorsCache=[];
+async function openAdmin(){
+  if(isVendor())return;
+  showScreen('admin');showLoading(true);
+  await loadRates();renderRatesForm();
+  await Promise.all([loadVendors(),loadVendorQuotes()]);
+  showLoading(false);
+}
+function renderRatesForm(){
+  document.getElementById('rates-form').innerHTML=WOOD_TYPES.map(w=>`<div class="form-group"><label>${esc(w)} ₹/CFT</label><input type="number" min="0" id="rate-${esc(w)}" value="${rateFor(w)}"></div>`).join('')
+    +`<div class="form-group"><label>Lathe ₹/ft×in</label><input type="number" min="0" id="rate-lathe" value="${latheRate()}"></div>`;
+}
+async function saveRates(){
+  const wood={};
+  for(const w of WOOD_TYPES){const v=parseFloat(document.getElementById('rate-'+w).value);if(!(v>=0)){toast(`Enter a valid rate for ${w}`);return;}wood[w]=v;}
+  const lathe=parseFloat(document.getElementById('rate-lathe').value);if(!(lathe>=0)){toast('Enter a valid lathe rate');return;}
+  rates={wood,lathe};
+  showLoading(true);
+  const synced=await commitWrite(db.collection('lathepro_settings').doc('rates').set({wood,lathe,updatedAt:new Date().toISOString()}));
+  showLoading(false);savedToast('Rates saved ✓',synced);
+}
+async function loadVendors(){
+  try{const snap=await db.collection('lathepro_vendors').get();vendorsCache=snap.docs.map(d=>({uid:d.id,...d.data()})).sort((a,b)=>String(a.businessName).localeCompare(String(b.businessName)));}
+  catch(e){console.error(e);vendorsCache=[];toast('Could not load vendors — check Firestore rules');}
+  renderVendors();
+}
+function renderVendors(){
+  const el=document.getElementById('vendors-list');
+  if(!vendorsCache.length){el.innerHTML='<div style="font-size:13px;color:var(--text3);">No vendors yet.</div>';return;}
+  el.innerHTML=vendorsCache.map(v=>`<div class="vendor-row ${v.active?'':'inactive'}">
+    <div><div class="vr-name">${esc(v.businessName)}</div><div class="vr-meta">User ID: <b>${esc(v.username)}</b>${v.contactName?' · '+esc(v.contactName):''}${v.phone?' · '+esc(v.phone):''}${v.active?'':' · <b>deactivated</b>'}</div></div>
+    <div class="vr-actions">
+      <input type="number" min="0" max="100" value="${Number(v.discountPct)||0}" id="vd-${esc(v.uid)}"><span style="font-size:12px;color:var(--text3);">%</span>
+      <button class="btn btn-outline btn-sm" onclick="setVendorDiscount(decodeURIComponent('${encodeURIComponent(v.uid)}'))">Save %</button>
+      <button class="btn ${v.active?'btn-danger':'btn-outline'} btn-sm" onclick="toggleVendor(decodeURIComponent('${encodeURIComponent(v.uid)}'))">${v.active?'Deactivate':'Activate'}</button>
+    </div></div>`).join('');
+}
+async function createVendor(){
+  const val=id=>document.getElementById(id).value.trim();
+  const businessName=val('nv-business'),contactName=val('nv-contact'),phone=val('nv-phone'),username=val('nv-username').toLowerCase(),password=document.getElementById('nv-password').value;
+  const discountPct=parseFloat(val('nv-discount'));
+  if(!businessName){toast('Enter business name');return;}
+  if(!/^[a-z0-9._-]{3,30}$/.test(username)){toast('User ID: 3–30 letters, numbers, . _ -');return;}
+  if(password.length<6){toast('Password must be at least 6 characters');return;}
+  if(!(discountPct>=0&&discountPct<=100)){toast('Discount must be 0–100');return;}
+  if(!navigator.onLine){toast('Creating a vendor needs internet');return;}
+  showLoading(true);
+  // A second Firebase app instance creates the login without signing the owner out
+  const sec=firebase.apps.find(a=>a.name==='vendorCreator')||firebase.initializeApp(firebaseConfig,'vendorCreator');
+  try{
+    // Check the rules allow vendor profiles BEFORE creating the login, so a user ID isn't wasted
+    await db.collection('lathepro_vendors').get();
+    await sec.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
+    const cred=await sec.auth().createUserWithEmailAndPassword(username+'@'+VENDOR_EMAIL_DOMAIN,password);
+    const uid=cred.user.uid;
+    await sec.auth().signOut();
+    const profile={businessName,contactName,phone,username,email:username+'@'+VENDOR_EMAIL_DOMAIN,discountPct,active:true,createdAt:new Date().toISOString()};
+    await db.collection('lathepro_vendors').doc(uid).set(profile);
+    ['nv-business','nv-contact','nv-phone','nv-username','nv-password'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('nv-discount').value=DEFAULT_B2B_DISCOUNT;
+    vendorsCache.push({uid,...profile});renderVendors();
+    toast(`Vendor created ✓  User ID: ${username}`);
+  }catch(e){
+    const m={'auth/email-already-in-use':'That user ID is already taken.','auth/weak-password':'Password is too weak.','auth/operation-not-allowed':'Email/password sign-up is disabled in Firebase Auth settings.','permission-denied':'Firestore rules block this — publish the updated rules first.'};
+    toast(m[e.code]||('Could not create vendor: '+(e.message||e.code)));console.error(e);
+  }
+  showLoading(false);
+}
+async function setVendorDiscount(uid){
+  const v=vendorsCache.find(x=>x.uid===uid);if(!v)return;
+  const pct=parseFloat(document.getElementById('vd-'+uid).value);
+  if(!(pct>=0&&pct<=100)){toast('Discount must be 0–100');return;}
+  v.discountPct=pct;
+  const synced=await commitWrite(db.collection('lathepro_vendors').doc(uid).update({discountPct:pct}));
+  savedToast(`${v.businessName}: ${pct}% saved ✓`,synced);
+}
+async function toggleVendor(uid){
+  const v=vendorsCache.find(x=>x.uid===uid);if(!v)return;
+  if(v.active&&!confirm(`Deactivate ${v.businessName}? They will no longer be able to log in or see rates.`))return;
+  v.active=!v.active;renderVendors();
+  const synced=await commitWrite(db.collection('lathepro_vendors').doc(uid).update({active:v.active}));
+  savedToast(`${v.businessName} ${v.active?'activated':'deactivated'} ✓`,synced);
+}
+async function loadVendorQuotes(){
+  const el=document.getElementById('vendor-quotes-list');
+  try{
+    const snap=await db.collection('lathepro_vendor_quotes').get();
+    const list=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+    if(!list.length){el.innerHTML='<div style="font-size:13px;color:var(--text3);">No vendor quotes yet.</div>';return;}
+    el.innerHTML=list.map(q=>`<div class="quote-card" onclick="openQuote(decodeURIComponent('${encodeURIComponent(q.id)}'),'lathepro_vendor_quotes')"><div><div class="quote-card-num">${esc(q.quoteNo)} · ${esc(q.vendorName)}</div><div class="quote-card-name">${esc(q.customerName)}</div><div class="quote-card-date">${formatDate(q.date)}</div></div><div><div class="quote-card-amount">₹${fmt(q.grandTotal||0)}</div><div class="quote-card-items">${(q.items||[]).length} item${(q.items||[]).length!==1?'s':''}</div></div></div>`).join('');
+  }catch(e){console.error(e);el.innerHTML='<div style="font-size:13px;color:var(--red);">Could not load vendor quotes — check Firestore rules.</div>';}
+}
 </script>
 </body>
 </html>
